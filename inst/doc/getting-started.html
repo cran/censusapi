@@ -107,22 +107,22 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <div id="choosing-variables" class="section level3">
 <h3>Choosing variables</h3>
 <p><code>censusapi</code> includes a metadata function called <code>listCensusMetadata</code> to get information about an API’s variable options and geography options. Let’s see what variables are available in the SAHIE API:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sahie_vars &lt;-<span class="st"> </span><span class="kw">listCensusMetadata</span>(<span class="dt">name=</span><span class="st">&quot;timeseries/healthins/sahie&quot;</span>, <span class="dt">type =</span> <span class="st">&quot;variables&quot;</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sahie_vars &lt;-<span class="st"> </span><span class="kw">listCensusMetadata</span>(<span class="dt">name =</span> <span class="st">&quot;timeseries/healthins/sahie&quot;</span>, <span class="dt">type =</span> <span class="st">&quot;variables&quot;</span>)
 <span class="kw">head</span>(sahie_vars)</code></pre></div>
-<pre><code>##       name                                                           label
-## 1 AGE_DESC                                        Age Category Description
-## 2 NUI_LB90       Number Uninsured, Lower Bound for 90% Confidence Interval
-## 3    STATE                                                 State FIPS Code
-## 4  NIC_MOE                                 Number Insured, Margin of Error
-## 5  NIPR_PT Number in Demographic Group for Selected Income Range, Estimate
-## 6  RACECAT                                                   Race Category
-##               concept predicateType group limit          required
-## 1      Demographic ID           int   N/A     0              &lt;NA&gt;
-## 2 Uncertainty Measure           int   N/A     0              &lt;NA&gt;
-## 3       Geographic ID           int   N/A     0              &lt;NA&gt;
-## 4 Uncertainty Measure           int   N/A     0              &lt;NA&gt;
-## 5            Estimate           int   N/A     0              &lt;NA&gt;
-## 6      Demographic ID           int   N/A     0 default displayed</code></pre>
+<pre><code>#&gt;       name                                                           label
+#&gt; 1 AGE_DESC                                        Age Category Description
+#&gt; 2 NUI_LB90       Number Uninsured, Lower Bound for 90% Confidence Interval
+#&gt; 3    STATE                                                 State FIPS Code
+#&gt; 4  NIC_MOE                                 Number Insured, Margin of Error
+#&gt; 5  NIPR_PT Number in Demographic Group for Selected Income Range, Estimate
+#&gt; 6  RACECAT                                                   Race Category
+#&gt;               concept predicateType group limit          required
+#&gt; 1      Demographic ID           int   N/A     0              &lt;NA&gt;
+#&gt; 2 Uncertainty Measure           int   N/A     0              &lt;NA&gt;
+#&gt; 3       Geographic ID           int   N/A     0              &lt;NA&gt;
+#&gt; 4 Uncertainty Measure           int   N/A     0              &lt;NA&gt;
+#&gt; 5            Estimate           int   N/A     0              &lt;NA&gt;
+#&gt; 6      Demographic ID           int   N/A     0 default displayed</code></pre>
 <p>We’ll use a few of these variables to get uninsured rates by income group:</p>
 <ul>
 <li><code>IPRCAT</code>: Income Poverty Ratio Category</li>
@@ -134,67 +134,138 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <div id="choosing-regions" class="section level3">
 <h3>Choosing regions</h3>
 <p>We can also use <code>listCensusMetadata</code> to see which geographic levels we can get data for using the SAHIE API.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">listCensusMetadata</span>(<span class="dt">name=</span><span class="st">&quot;timeseries/healthins/sahie&quot;</span>, <span class="dt">type =</span> <span class="st">&quot;geography&quot;</span>)</code></pre></div>
-<pre><code>##     name geoLevelId requires wildcard optionalWithWCFor
-## 1     us        010     NULL     NULL              &lt;NA&gt;
-## 2 county        050    state    state             state
-## 3  state        040     NULL     NULL              &lt;NA&gt;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">listCensusMetadata</span>(<span class="dt">name =</span> <span class="st">&quot;timeseries/healthins/sahie&quot;</span>, <span class="dt">type =</span> <span class="st">&quot;geography&quot;</span>)</code></pre></div>
+<pre><code>#&gt;     name geoLevelId referenceDate requires wildcard optionalWithWCFor
+#&gt; 1     us        010    2015-01-01     NULL     NULL              &lt;NA&gt;
+#&gt; 2 county        050    2015-01-01    state    state             state
+#&gt; 3  state        040    2015-01-01     NULL     NULL              &lt;NA&gt;</code></pre>
 <p>This API has three geographic levels: <code>us</code>, <code>county</code> within states, and <code>state</code>.</p>
 <p>First, using <code>getCensus</code>, let’s get uninsured rate by income group at the national level for 2015.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">getCensus</span>(<span class="dt">name=</span><span class="st">&quot;timeseries/healthins/sahie&quot;</span>,
-    <span class="dt">vars=</span><span class="kw">c</span>(<span class="st">&quot;NAME&quot;</span>, <span class="st">&quot;IPRCAT&quot;</span>, <span class="st">&quot;IPR_DESC&quot;</span>, <span class="st">&quot;PCTUI_PT&quot;</span>), 
-    <span class="dt">region=</span><span class="st">&quot;us:*&quot;</span>, <span class="dt">time=</span><span class="dv">2015</span>)</code></pre></div>
-<pre><code>##            NAME IPRCAT                IPR_DESC PCTUI_PT time us
-## 1 United States      0             All Incomes     10.9 2015  1
-## 2 United States      1      &lt;= 200% of Poverty     18.6 2015  1
-## 3 United States      2      &lt;= 250% of Poverty     17.8 2015  1
-## 4 United States      3      &lt;= 138% of Poverty     19.1 2015  1
-## 5 United States      4      &lt;= 400% of Poverty     15.1 2015  1
-## 6 United States      5 138% to 400% of Poverty     12.8 2015  1</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">getCensus</span>(<span class="dt">name =</span> <span class="st">&quot;timeseries/healthins/sahie&quot;</span>,
+    <span class="dt">vars =</span> <span class="kw">c</span>(<span class="st">&quot;NAME&quot;</span>, <span class="st">&quot;IPRCAT&quot;</span>, <span class="st">&quot;IPR_DESC&quot;</span>, <span class="st">&quot;PCTUI_PT&quot;</span>), 
+    <span class="dt">region =</span> <span class="st">&quot;us:*&quot;</span>, <span class="dt">time =</span> <span class="dv">2015</span>)</code></pre></div>
+<pre><code>#&gt;   time us          NAME IPRCAT                IPR_DESC PCTUI_PT
+#&gt; 1 2015  1 United States      0             All Incomes     10.9
+#&gt; 2 2015  1 United States      1      &lt;= 200% of Poverty     18.6
+#&gt; 3 2015  1 United States      2      &lt;= 250% of Poverty     17.8
+#&gt; 4 2015  1 United States      3      &lt;= 138% of Poverty     19.1
+#&gt; 5 2015  1 United States      4      &lt;= 400% of Poverty     15.1
+#&gt; 6 2015  1 United States      5 138% to 400% of Poverty     12.8</code></pre>
 <p>We can also get this data at the state level for every state by changing <code>region</code> to <code>&quot;state:*&quot;</code>:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sahie_states &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name=</span><span class="st">&quot;timeseries/healthins/sahie&quot;</span>,
-    <span class="dt">vars=</span><span class="kw">c</span>(<span class="st">&quot;NAME&quot;</span>, <span class="st">&quot;IPRCAT&quot;</span>, <span class="st">&quot;IPR_DESC&quot;</span>, <span class="st">&quot;PCTUI_PT&quot;</span>), 
-    <span class="dt">region=</span><span class="st">&quot;state:*&quot;</span>, <span class="dt">time=</span><span class="dv">2015</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sahie_states &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name =</span> <span class="st">&quot;timeseries/healthins/sahie&quot;</span>,
+    <span class="dt">vars =</span> <span class="kw">c</span>(<span class="st">&quot;NAME&quot;</span>, <span class="st">&quot;IPRCAT&quot;</span>, <span class="st">&quot;IPR_DESC&quot;</span>, <span class="st">&quot;PCTUI_PT&quot;</span>), 
+    <span class="dt">region =</span> <span class="st">&quot;state:*&quot;</span>, <span class="dt">time =</span> <span class="dv">2015</span>)
 <span class="kw">head</span>(sahie_states)</code></pre></div>
-<pre><code>##         NAME IPRCAT    IPR_DESC PCTUI_PT time state
-## 1    Alabama      0 All Incomes     11.9 2015    01
-## 2     Alaska      0 All Incomes     16.3 2015    02
-## 3    Arizona      0 All Incomes     12.8 2015    04
-## 4   Arkansas      0 All Incomes     11.1 2015    05
-## 5 California      0 All Incomes      9.7 2015    06
-## 6   Colorado      0 All Incomes      9.2 2015    08</code></pre>
+<pre><code>#&gt;   time state    NAME IPRCAT                IPR_DESC PCTUI_PT
+#&gt; 1 2015    01 Alabama      0             All Incomes     11.9
+#&gt; 2 2015    01 Alabama      1      &lt;= 200% of Poverty     19.8
+#&gt; 3 2015    01 Alabama      2      &lt;= 250% of Poverty     18.6
+#&gt; 4 2015    01 Alabama      3      &lt;= 138% of Poverty     21.2
+#&gt; 5 2015    01 Alabama      4      &lt;= 400% of Poverty     15.5
+#&gt; 6 2015    01 Alabama      5 138% to 400% of Poverty     11.8</code></pre>
 <p>Finally, we can get county-level data. The geography metadata showed that we can choose to get county-level data within states. We’ll use <code>region</code> to specify county-level results and <code>regionin</code> to request data for Alabama and Alaska.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sahie_counties &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name=</span><span class="st">&quot;timeseries/healthins/sahie&quot;</span>,
-    <span class="dt">vars=</span><span class="kw">c</span>(<span class="st">&quot;NAME&quot;</span>, <span class="st">&quot;IPRCAT&quot;</span>, <span class="st">&quot;IPR_DESC&quot;</span>, <span class="st">&quot;PCTUI_PT&quot;</span>), 
-    <span class="dt">region=</span><span class="st">&quot;county:*&quot;</span>, <span class="dt">regionin=</span><span class="st">&quot;state:1,2&quot;</span>, <span class="dt">time=</span><span class="dv">2015</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sahie_counties &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name =</span> <span class="st">&quot;timeseries/healthins/sahie&quot;</span>,
+    <span class="dt">vars =</span> <span class="kw">c</span>(<span class="st">&quot;NAME&quot;</span>, <span class="st">&quot;IPRCAT&quot;</span>, <span class="st">&quot;IPR_DESC&quot;</span>, <span class="st">&quot;PCTUI_PT&quot;</span>), 
+    <span class="dt">region =</span> <span class="st">&quot;county:*&quot;</span>, <span class="dt">regionin =</span> <span class="st">&quot;state:1,2&quot;</span>, <span class="dt">time =</span> <span class="dv">2015</span>)
 <span class="kw">head</span>(sahie_counties, <span class="dt">n=</span>12L)</code></pre></div>
-<pre><code>##                  NAME IPRCAT                IPR_DESC PCTUI_PT time state
-## 1  Autauga County, AL      0             All Incomes      9.4 2015    01
-## 2  Autauga County, AL      1      &lt;= 200% of Poverty     16.8 2015    01
-## 3  Autauga County, AL      2      &lt;= 250% of Poverty     15.5 2015    01
-## 4  Autauga County, AL      3      &lt;= 138% of Poverty     18.6 2015    01
-## 5  Autauga County, AL      4      &lt;= 400% of Poverty     12.4 2015    01
-## 6  Autauga County, AL      5 138% to 400% of Poverty      9.6 2015    01
-## 7  Baldwin County, AL      0             All Incomes     11.5 2015    01
-## 8  Baldwin County, AL      1      &lt;= 200% of Poverty     21.1 2015    01
-## 9  Baldwin County, AL      2      &lt;= 250% of Poverty     19.5 2015    01
-## 10 Baldwin County, AL      3      &lt;= 138% of Poverty     22.5 2015    01
-## 11 Baldwin County, AL      4      &lt;= 400% of Poverty     15.7 2015    01
-## 12 Baldwin County, AL      5 138% to 400% of Poverty     12.2 2015    01
-##    county
-## 1     001
-## 2     001
-## 3     001
-## 4     001
-## 5     001
-## 6     001
-## 7     003
-## 8     003
-## 9     003
-## 10    003
-## 11    003
-## 12    003</code></pre>
+<pre><code>#&gt;    time state county               NAME IPRCAT                IPR_DESC
+#&gt; 1  2015    01    001 Autauga County, AL      0             All Incomes
+#&gt; 2  2015    01    001 Autauga County, AL      1      &lt;= 200% of Poverty
+#&gt; 3  2015    01    001 Autauga County, AL      2      &lt;= 250% of Poverty
+#&gt; 4  2015    01    001 Autauga County, AL      3      &lt;= 138% of Poverty
+#&gt; 5  2015    01    001 Autauga County, AL      4      &lt;= 400% of Poverty
+#&gt; 6  2015    01    001 Autauga County, AL      5 138% to 400% of Poverty
+#&gt; 7  2015    01    003 Baldwin County, AL      0             All Incomes
+#&gt; 8  2015    01    003 Baldwin County, AL      1      &lt;= 200% of Poverty
+#&gt; 9  2015    01    003 Baldwin County, AL      2      &lt;= 250% of Poverty
+#&gt; 10 2015    01    003 Baldwin County, AL      3      &lt;= 138% of Poverty
+#&gt; 11 2015    01    003 Baldwin County, AL      4      &lt;= 400% of Poverty
+#&gt; 12 2015    01    003 Baldwin County, AL      5 138% to 400% of Poverty
+#&gt;    PCTUI_PT
+#&gt; 1       9.4
+#&gt; 2      16.8
+#&gt; 3      15.5
+#&gt; 4      18.6
+#&gt; 5      12.4
+#&gt; 6       9.6
+#&gt; 7      11.5
+#&gt; 8      21.1
+#&gt; 9      19.5
+#&gt; 10     22.5
+#&gt; 11     15.7
+#&gt; 12     12.2</code></pre>
 </div>
+</div>
+<div id="american-community-survey-annotations-variable-groups" class="section level2">
+<h2>American Community Survey annotations variable groups</h2>
+<p>The American Community Survey (ACS) APIs include estimates (variable names ending in “E”), annotations, margins of error, and statistical significance, depending on the data set. Read more on <a href="https://www.census.gov/data/developers/data-sets/acs-5year/data-notes.html">ACS variable types</a> and annotation symbol meanings on the Census website.</p>
+<p>You can retrieve these annotation variables manually, by specifying a list of variables. We’ll get the estimate, margin of error and annotations for median household income in the past 12 months for Census tracts in Alaska.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">acs_income &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name =</span> <span class="st">&quot;acs/acs5&quot;</span>, <span class="dt">vintage =</span> <span class="dv">2016</span>, 
+    <span class="dt">vars =</span> <span class="kw">c</span>(<span class="st">&quot;NAME&quot;</span>, <span class="st">&quot;B19013_001E&quot;</span>, <span class="st">&quot;B19013_001EA&quot;</span>, <span class="st">&quot;B19013_001M&quot;</span>, <span class="st">&quot;B19013_001MA&quot;</span>), 
+    <span class="dt">region =</span> <span class="st">&quot;tract:*&quot;</span>, <span class="dt">regionin =</span> <span class="st">&quot;state:02&quot;</span>)
+<span class="kw">head</span>(acs_income)</code></pre></div>
+<pre><code>#&gt;   state county  tract                                               NAME
+#&gt; 1    02    013 000100     Census Tract 1, Aleutians East Borough, Alaska
+#&gt; 2    02    016 000100 Census Tract 1, Aleutians West Census Area, Alaska
+#&gt; 3    02    016 000200 Census Tract 2, Aleutians West Census Area, Alaska
+#&gt; 4    02    020 000101  Census Tract 1.01, Anchorage Municipality, Alaska
+#&gt; 5    02    020 000102  Census Tract 1.02, Anchorage Municipality, Alaska
+#&gt; 6    02    020 000201  Census Tract 2.01, Anchorage Municipality, Alaska
+#&gt;   B19013_001E B19013_001EA B19013_001M B19013_001MA
+#&gt; 1       65926         &lt;NA&gt;        2430         &lt;NA&gt;
+#&gt; 2       59167         &lt;NA&gt;        4680         &lt;NA&gt;
+#&gt; 3       92083         &lt;NA&gt;        4791         &lt;NA&gt;
+#&gt; 4      101420         &lt;NA&gt;       15802         &lt;NA&gt;
+#&gt; 5       76690         &lt;NA&gt;       14441         &lt;NA&gt;
+#&gt; 6       93636         &lt;NA&gt;       17769         &lt;NA&gt;</code></pre>
+<p>You can also retrieve also estimates and annotations for a group of variables in one command. Here’s the <code>group</code> call for that same table, <a href="https://api.census.gov/data/2016/acs/acs5/groups/B19013.html">B19013</a>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">acs_income_group &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name =</span> <span class="st">&quot;acs/acs5&quot;</span>, <span class="dt">vintage =</span> <span class="dv">2016</span>, 
+    <span class="dt">vars =</span> <span class="kw">c</span>(<span class="st">&quot;NAME&quot;</span>, <span class="st">&quot;group(B19013)&quot;</span>), 
+    <span class="dt">region =</span> <span class="st">&quot;tract:*&quot;</span>, <span class="dt">regionin =</span> <span class="st">&quot;state:02&quot;</span>)
+<span class="kw">head</span>(acs_income_group)</code></pre></div>
+<pre><code>#&gt;   state county  tract                                               NAME
+#&gt; 1    02    013 000100     Census Tract 1, Aleutians East Borough, Alaska
+#&gt; 2    02    016 000100 Census Tract 1, Aleutians West Census Area, Alaska
+#&gt; 3    02    016 000200 Census Tract 2, Aleutians West Census Area, Alaska
+#&gt; 4    02    020 000101  Census Tract 1.01, Anchorage Municipality, Alaska
+#&gt; 5    02    020 000102  Census Tract 1.02, Anchorage Municipality, Alaska
+#&gt; 6    02    020 000201  Census Tract 2.01, Anchorage Municipality, Alaska
+#&gt;   B19013_001E B19013_001M B19013_001M_1 B19013_001EA B19013_001MA
+#&gt; 1       65926        2430          2430         &lt;NA&gt;         &lt;NA&gt;
+#&gt; 2       59167        4680          4680         &lt;NA&gt;         &lt;NA&gt;
+#&gt; 3       92083        4791          4791         &lt;NA&gt;         &lt;NA&gt;
+#&gt; 4      101420       15802         15802         &lt;NA&gt;         &lt;NA&gt;
+#&gt; 5       76690       14441         14441         &lt;NA&gt;         &lt;NA&gt;
+#&gt; 6       93636       17769         17769         &lt;NA&gt;         &lt;NA&gt;</code></pre>
+<p>Some variable groups contain many related variables and their associated annotations. As an example, we’ll get table <a href="https://api.census.gov/data/2016/acs/acs5/groups/B17020.html">B17020</a>, poverty status by age.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">acs_poverty_group &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name =</span> <span class="st">&quot;acs/acs5&quot;</span>, <span class="dt">vintage =</span> <span class="dv">2016</span>, 
+    <span class="dt">vars =</span> <span class="kw">c</span>(<span class="st">&quot;NAME&quot;</span>, <span class="st">&quot;group(B17020)&quot;</span>), 
+    <span class="dt">region =</span> <span class="st">&quot;tract:*&quot;</span>, <span class="dt">regionin =</span> <span class="st">&quot;state:02&quot;</span>)
+<span class="co"># List column names</span>
+<span class="kw">colnames</span>(acs_poverty_group)</code></pre></div>
+<pre><code>#&gt;  [1] &quot;state&quot;         &quot;county&quot;        &quot;tract&quot;         &quot;NAME&quot;         
+#&gt;  [5] &quot;B17020_001E&quot;   &quot;B17020_001M&quot;   &quot;B17020_002E&quot;   &quot;B17020_002M&quot;  
+#&gt;  [9] &quot;B17020_003E&quot;   &quot;B17020_003M&quot;   &quot;B17020_004E&quot;   &quot;B17020_004M&quot;  
+#&gt; [13] &quot;B17020_005E&quot;   &quot;B17020_005M&quot;   &quot;B17020_006E&quot;   &quot;B17020_006M&quot;  
+#&gt; [17] &quot;B17020_007E&quot;   &quot;B17020_007M&quot;   &quot;B17020_008E&quot;   &quot;B17020_008M&quot;  
+#&gt; [21] &quot;B17020_009E&quot;   &quot;B17020_009M&quot;   &quot;B17020_010E&quot;   &quot;B17020_010M&quot;  
+#&gt; [25] &quot;B17020_011E&quot;   &quot;B17020_011M&quot;   &quot;B17020_012E&quot;   &quot;B17020_012M&quot;  
+#&gt; [29] &quot;B17020_013E&quot;   &quot;B17020_013M&quot;   &quot;B17020_014E&quot;   &quot;B17020_014M&quot;  
+#&gt; [33] &quot;B17020_015E&quot;   &quot;B17020_015M&quot;   &quot;B17020_016E&quot;   &quot;B17020_016M&quot;  
+#&gt; [37] &quot;B17020_017E&quot;   &quot;B17020_017M&quot;   &quot;B17020_001M_1&quot; &quot;B17020_001EA&quot; 
+#&gt; [41] &quot;B17020_001MA&quot;  &quot;B17020_002M_1&quot; &quot;B17020_002EA&quot;  &quot;B17020_002MA&quot; 
+#&gt; [45] &quot;B17020_003M_1&quot; &quot;B17020_003EA&quot;  &quot;B17020_003MA&quot;  &quot;B17020_004M_1&quot;
+#&gt; [49] &quot;B17020_004EA&quot;  &quot;B17020_004MA&quot;  &quot;B17020_005M_1&quot; &quot;B17020_005EA&quot; 
+#&gt; [53] &quot;B17020_005MA&quot;  &quot;B17020_006M_1&quot; &quot;B17020_006EA&quot;  &quot;B17020_006MA&quot; 
+#&gt; [57] &quot;B17020_007M_1&quot; &quot;B17020_007EA&quot;  &quot;B17020_007MA&quot;  &quot;B17020_008M_1&quot;
+#&gt; [61] &quot;B17020_008EA&quot;  &quot;B17020_008MA&quot;  &quot;B17020_009M_1&quot; &quot;B17020_009EA&quot; 
+#&gt; [65] &quot;B17020_009MA&quot;  &quot;B17020_010M_1&quot; &quot;B17020_010EA&quot;  &quot;B17020_010MA&quot; 
+#&gt; [69] &quot;B17020_011M_1&quot; &quot;B17020_011EA&quot;  &quot;B17020_011MA&quot;  &quot;B17020_012M_1&quot;
+#&gt; [73] &quot;B17020_012EA&quot;  &quot;B17020_012MA&quot;  &quot;B17020_013M_1&quot; &quot;B17020_013EA&quot; 
+#&gt; [77] &quot;B17020_013MA&quot;  &quot;B17020_014M_1&quot; &quot;B17020_014EA&quot;  &quot;B17020_014MA&quot; 
+#&gt; [81] &quot;B17020_015M_1&quot; &quot;B17020_015EA&quot;  &quot;B17020_015MA&quot;  &quot;B17020_016M_1&quot;
+#&gt; [85] &quot;B17020_016EA&quot;  &quot;B17020_016MA&quot;  &quot;B17020_017M_1&quot; &quot;B17020_017EA&quot; 
+#&gt; [89] &quot;B17020_017MA&quot;</code></pre>
 </div>
 <div id="advanced-geographies" class="section level2">
 <h2>Advanced geographies</h2>
@@ -202,50 +273,50 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p>You may want to get get data for many geographies that require a parent geography. For example, tract-level data from the 1990 Decennial Census can only be requested from one state at a time.</p>
 <p>In this example, we use the built in <code>fips</code> list of state <a href="https://www.census.gov/geo/reference/ansi_statetables.html">FIPS codes</a> to request tract-level data from each state and join into a single data frame.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">fips</code></pre></div>
-<pre><code>##  [1]  1  2  4  5  6  8  9 10 11 12 13 15 16 17 18 19 20 21 22 23 24 25 26
-## [24] 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 44 45 46 47 48 49 50
-## [47] 51 53 54 55 56</code></pre>
+<pre><code>#&gt;  [1]  1  2  4  5  6  8  9 10 11 12 13 15 16 17 18 19 20 21 22 23 24 25 26
+#&gt; [24] 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 44 45 46 47 48 49 50
+#&gt; [47] 51 53 54 55 56</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">tracts &lt;-<span class="st"> </span><span class="ot">NULL</span>
-for (f in fips) {
+<span class="cf">for</span> (f <span class="cf">in</span> fips) {
     stateget &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;state:&quot;</span>, f, <span class="dt">sep=</span><span class="st">&quot;&quot;</span>)
-    temp &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name=</span><span class="st">&quot;sf3&quot;</span>, <span class="dt">vintage=</span><span class="dv">1990</span>,
-    <span class="dt">vars=</span><span class="kw">c</span>(<span class="st">&quot;P0070001&quot;</span>, <span class="st">&quot;P0070002&quot;</span>, <span class="st">&quot;P114A001&quot;</span>), <span class="dt">region=</span><span class="st">&quot;tract:*&quot;</span>,
+    temp &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name =</span> <span class="st">&quot;sf3&quot;</span>, <span class="dt">vintage =</span> <span class="dv">1990</span>,
+    <span class="dt">vars =</span> <span class="kw">c</span>(<span class="st">&quot;P0070001&quot;</span>, <span class="st">&quot;P0070002&quot;</span>, <span class="st">&quot;P114A001&quot;</span>), <span class="dt">region =</span> <span class="st">&quot;tract:*&quot;</span>,
     <span class="dt">regionin =</span> stateget)
     tracts &lt;-<span class="st"> </span><span class="kw">rbind</span>(tracts, temp)
 }
 <span class="kw">head</span>(tracts)</code></pre></div>
-<pre><code>##   state county  tract P0070001 P0070002 P114A001
-## 1    01    001 020100      944      917    11663
-## 2    01    001 020200      917     1060     8555
-## 3    01    001 020300     1451     1518    11782
-## 4    01    001 020400     2166     2223    15323
-## 5    01    001 020500     1604     1582    14522
-## 6    01    001 020600     1784     1661    10630</code></pre>
+<pre><code>#&gt;   state county  tract P0070001 P0070002 P114A001
+#&gt; 1    01    001 020100      944      917    11663
+#&gt; 2    01    001 020200      917     1060     8555
+#&gt; 3    01    001 020300     1451     1518    11782
+#&gt; 4    01    001 020400     2166     2223    15323
+#&gt; 5    01    001 020500     1604     1582    14522
+#&gt; 6    01    001 020600     1784     1661    10630</code></pre>
 <p>The <code>regionin</code> argument of <code>getCensus</code> can also be used with a string of nested geographies, as shown below.</p>
 <p>The 2010 Decennial Census summary file 1 requires you to specify a state and county to retrieve block-level data. Use <code>region</code> to request block level data, and <code>regionin</code> to specify the desired state and county.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data2010 &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name=</span><span class="st">&quot;sf1&quot;</span>, <span class="dt">vintage=</span><span class="dv">2010</span>,
-    <span class="dt">vars=</span><span class="kw">c</span>(<span class="st">&quot;P0010001&quot;</span>, <span class="st">&quot;P0030001&quot;</span>), 
-    <span class="dt">region=</span><span class="st">&quot;block:*&quot;</span>, <span class="dt">regionin=</span><span class="st">&quot;state:36+county:027&quot;</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data2010 &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name =</span> <span class="st">&quot;sf1&quot;</span>, <span class="dt">vintage =</span> <span class="dv">2010</span>,
+    <span class="dt">vars =</span> <span class="st">&quot;P0010001&quot;</span>, 
+    <span class="dt">region =</span> <span class="st">&quot;block:*&quot;</span>, <span class="dt">regionin =</span> <span class="st">&quot;state:36+county:027&quot;</span>)
 <span class="kw">head</span>(data2010)</code></pre></div>
-<pre><code>##   state county  tract block P0010001 P0030001
-## 1    36    027 010000  1020       73       73
-## 2    36    027 010000  1023        0        0
-## 3    36    027 010000  1030       68       68
-## 4    36    027 010000  1031        0        0
-## 5    36    027 010000  1032        0        0
-## 6    36    027 010000  1033        0        0</code></pre>
+<pre><code>#&gt;   state county  tract block P0010001
+#&gt; 1    36    027 010000  1020       73
+#&gt; 2    36    027 010000  1023        0
+#&gt; 3    36    027 010000  1030       68
+#&gt; 4    36    027 010000  1031        0
+#&gt; 5    36    027 010000  1032        0
+#&gt; 6    36    027 010000  1033        0</code></pre>
 <p>For the 2000 Decennial Census summary file 1, tract is also required to retrieve block-level data. This example requests data for all blocks within Census tract 010000 in county 027 of state 36.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data2000 &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name=</span><span class="st">&quot;sf1&quot;</span>, <span class="dt">vintage=</span><span class="dv">2000</span>,
-    <span class="dt">vars=</span><span class="kw">c</span>(<span class="st">&quot;P001001&quot;</span>, <span class="st">&quot;P003001&quot;</span>), 
-    <span class="dt">region=</span><span class="st">&quot;block:*&quot;</span>, <span class="dt">regionin=</span><span class="st">&quot;state:36+county:027+tract:010000&quot;</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data2000 &lt;-<span class="st"> </span><span class="kw">getCensus</span>(<span class="dt">name =</span> <span class="st">&quot;sf1&quot;</span>, <span class="dt">vintage =</span> <span class="dv">2000</span>,
+    <span class="dt">vars =</span> <span class="st">&quot;P001001&quot;</span>, 
+    <span class="dt">region =</span> <span class="st">&quot;block:*&quot;</span>, <span class="dt">regionin =</span> <span class="st">&quot;state:36+county:027+tract:010000&quot;</span>)
 <span class="kw">head</span>(data2000)</code></pre></div>
-<pre><code>##   state county  tract block P001001 P003001
-## 1    36    027 010000  1000      18      18
-## 2    36    027 010000  1001      26      26
-## 3    36    027 010000  1002      59      59
-## 4    36    027 010000  1003      67      67
-## 5    36    027 010000  1004      52      52
-## 6    36    027 010000  1005     116     116</code></pre>
+<pre><code>#&gt;   state county  tract block P001001
+#&gt; 1    36    027 010000  1000      18
+#&gt; 2    36    027 010000  1001      26
+#&gt; 3    36    027 010000  1002      59
+#&gt; 4    36    027 010000  1003      67
+#&gt; 5    36    027 010000  1004      52
+#&gt; 6    36    027 010000  1005     116</code></pre>
 </div>
 <div id="additional-resources" class="section level2">
 <h2>Additional resources</h2>
