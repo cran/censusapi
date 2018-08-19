@@ -6,7 +6,6 @@
 
 `censusapi` generally uses the APIs' original parameter names so that users can easily transition between Census's documentation and examples and this package. It also includes metadata functions to return data frames of available APIs, variables, and geographies.
 
-For more details, see [Getting started with censusapi](https://hrecht.github.io/censusapi/articles/getting-started.html) and the package's [website](https://hrecht.github.io/censusapi/index.html).
 
 ## Installation
 Get the latest stable release from CRAN: 
@@ -45,13 +44,14 @@ In some instances you might not want to put your key in your .Renviron - for exa
 library(censusapi)
 ```
 
-Get uninsured rates in Alabama by income group from the Small Area Health Insurance Estimates [(SAHIE) timeseries API](https://www.census.gov/data/developers/data-sets/Health-Insurance-Statistics.html)
+Get uninsured rates from the Small Area Health Insurance Estimates [(SAHIE) timeseries API](https://www.census.gov/data/developers/data-sets/Health-Insurance-Statistics.html) using `getCensus()`.
 
+State-level data by income group within Alabama.
 ```R 
-# State-level data for Alabama
 getCensus(name = "timeseries/healthins/sahie",
 	vars = c("NAME", "IPRCAT", "IPR_DESC", "PCTUI_PT"), 
-	region = "state:1", time = 2015)
+	region = "state:1",
+	time = 2016)
 #>      NAME IPRCAT                IPR_DESC PCTUI_PT time state
 #> 1 Alabama      0             All Incomes     11.9 2015    01
 #> 2 Alabama      1      <= 200% of Poverty     19.8 2015    01
@@ -59,11 +59,14 @@ getCensus(name = "timeseries/healthins/sahie",
 #> 4 Alabama      3      <= 138% of Poverty     21.2 2015    01
 #> 5 Alabama      4      <= 400% of Poverty     15.5 2015    01
 #> 6 Alabama      5 138% to 400% of Poverty     11.8 2015    01
-
-# County-level data within Alabama, specified by adding the `regionin` parameter.
+```
+County-level data within Alabama, specified by adding the `regionin` parameter.
+```R
 sahie_counties <- getCensus(name = "timeseries/healthins/sahie",
 	vars = c("NAME", "IPRCAT", "IPR_DESC", "PCTUI_PT"), 
-	region = "county:*", regionin = "state:1", time = 2015)
+	region = "county:*",
+	regionin = "state:1",
+	time = 2016)
 head(sahie_counties, n=12L)
 #>                  NAME IPRCAT                IPR_DESC PCTUI_PT time state county
 #> 1  Autauga County, AL      0             All Incomes      9.4 2015    01    001
@@ -78,13 +81,29 @@ head(sahie_counties, n=12L)
 #> 10 Baldwin County, AL      3      <= 138% of Poverty     22.5 2015    01    003
 #> 11 Baldwin County, AL      4      <= 400% of Poverty     15.7 2015    01    003
 #> 12 Baldwin County, AL      5 138% to 400% of Poverty     12.2 2015    01    003
-
+```
+Retrieve annual data using the `time` argument by specifying a start year and stop year.
+```R
+sahie_annual <- getCensus(name = "timeseries/healthins/sahie",
+    vars = c("NAME", "PCTUI_PT"),
+    region = "state:1",
+    time = "from 2006 to 2016")
+sahie_annual
+#> 		time state    NAME PCTUI_PT
+#> 1  2006    01 Alabama     15.7
+#> 2  2007    01 Alabama     14.6
+#> 3  2008    01 Alabama     15.3
+#> 4  2009    01 Alabama     15.8
+#> 5  2010    01 Alabama     16.9
+#> 6  2011    01 Alabama     16.6
+#> 7  2012    01 Alabama     15.8
+#> 8  2013    01 Alabama     15.9
+#> 9  2014    01 Alabama     14.2
+#> 10 2015    01 Alabama     11.9
+#> 11 2016    01 Alabama     10.8
 ```
 
-See more examples in [Getting started with censusapi](https://hrecht.github.io/censusapi/articles/getting-started.html)
-
-## Time series note
-While the APIs generally return specific error messages for invalid variables or geographies, they currently return no content (status 204) without an error message when an invalid year is specified in some time series. If you're getting repeated 204 responses double check the Census documentation to make sure your time period is valid.
+Read more on how to build a `censusapi` call in [Getting started with censusapi](https://hrecht.github.io/censusapi/articles/getting-started.html) and see examples from every API in the [example master list](https://hrecht.github.io/censusapi/articles/example-masterlist.html).
 
 ## Disclaimer
 This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau.

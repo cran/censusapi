@@ -6,7 +6,9 @@
 \usage{
 getCensus(name, vintage = NULL, key = Sys.getenv("CENSUS_KEY"), vars,
   region, regionin = NULL, time = NULL, date = NULL, period = NULL,
-  monthly = NULL, category_code = NULL, data_type_code = NULL)
+  monthly = NULL, category_code = NULL, data_type_code = NULL,
+  naics = NULL, pscode = NULL, naics2012 = NULL, naics2007 = NULL,
+  naics2002 = NULL, naics1997 = NULL, sic = NULL)
 }
 \arguments{
 \item{name}{API name - e.g. acs5. See list at https://api.census.gov/data.html}
@@ -21,17 +23,13 @@ getCensus(name, vintage = NULL, key = Sys.getenv("CENSUS_KEY"), vars,
 
 \item{regionin}{Optional hierarchical geography to limit region}
 
-\item{time}{Optional argument used for some time series APIs}
+\item{time, date, period, monthly}{Optional arguments used for some time series APIs}
 
-\item{date}{Optional argument used for some time series APIs}
+\item{category_code, data_type_code}{Arguments used in Economic Indicators Time Series API}
 
-\item{period}{Optional argument used for some time series APIs}
+\item{naics, pscode}{Arguments used in Annual Survey of Manufactures API}
 
-\item{monthly}{Optional argument used for some time series APIs}
-
-\item{category_code}{Argument used in Economic Indicators Time Series API}
-
-\item{data_type_code}{Argument used in Economic Indicators Time Series API}
+\item{naics2012, naics2007, naics2002, naics1997, sic}{Arguments used in Economy Wide Key Statistics APIs and Business Patterns APIs}
 }
 \description{
 Retrieve Census data from a given API
@@ -50,9 +48,9 @@ acs_group <- getCensus(name = "acs/acs5", vintage = 2016,
 	head(acs_group)
 
 # Retreive block-level data within a specific state and county using a nested regionin argument
-data2010 <- getCensus(name = "sf1", vintage = 2010,
-vars = c("P0010001", "P0030001"),
-region = "block:*", regionin = "state:36+county:27")
+data2010 <- getCensus(name = "dec/sf1", vintage = 2010,
+vars = c("P001001", "H010001"),
+region = "block:*", regionin = "state:36+county:027")
 head(data2010)
 
 # Retreive block-level data for Decennial Census sf1, 2000
@@ -66,7 +64,14 @@ head(data2000)
 saipe <- getCensus(name = "timeseries/poverty/saipe",
 	vars = c("NAME", "SAEPOVRT0_17_PT", "SAEPOVRTALL_PT"),
 	region = "state:*", time = 2011)
-head(saipe)}
+head(saipe)
 
+# Get county business patterns data for a specific NAICS sector
+cbp_2016 <- getCensus(name = "cbp",
+ vintage = "2016",
+ vars = c("EMP", "ESTAB", "NAICS2012_TTL", "GEO_TTL"),
+ region = "state:*",
+ naics2012 = "23")
+ head(cbp_2016)}
 }
 \keyword{api}
