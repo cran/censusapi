@@ -1,3 +1,16 @@
+# censusapi 0.6.0
+* Allows the use of miscellaneous paramaters in `getCensus(`. This allows users to specify any valid API argument name and pass it a value, giving full access to all of the underlying Census Bureau APIs.
+* Adds a `group` parameter in `listCensusMetadata()`. This allows users to get variable metadata for a specified variable group.
+* Improves internal logic in `listCensusMetadata()`.
+* Add documentation and examples using miscellaneous paramaters.
+* Returns underlying API call in error messages, particularly useful for users needing from the Census Bureau.
+* Specifies tract in block group example due to underlying API changes.
+* Adds [Contributor Code of Conduct](CODE_OF_CONDUCT.md).
+
+# censusapi 0.5.0
+* Makes `region` an optional argument in `getCensus`, rather than required.
+* Pads fips codes stored in `fips` dataset with zeroes.
+
 # censusapi 0.4.1
 * Adds `groups` type option to `listCensusMetadata`.
 * Fixes bug in `listCensusMetadata` variables call caused by an underlying Census API change, which renamed `validValues` to `values` for some endpoints.

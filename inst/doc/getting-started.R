@@ -31,54 +31,107 @@ listCensusMetadata(name = "timeseries/healthins/sahie",
 getCensus(name = "timeseries/healthins/sahie",
 	vars = c("NAME", "IPRCAT", "IPR_DESC", "PCTUI_PT"), 
 	region = "us:*", 
-	time = 2016)
+	time = 2017)
 
 ## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
 sahie_states <- getCensus(name = "timeseries/healthins/sahie",
 	vars = c("NAME", "IPRCAT", "IPR_DESC", "PCTUI_PT"), 
 	region = "state:*", 
-	time = 2016)
+	time = 2017)
 head(sahie_states)
 
 ## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
 sahie_counties <- getCensus(name = "timeseries/healthins/sahie",
 	vars = c("NAME", "IPRCAT", "IPR_DESC", "PCTUI_PT"), 
 	region = "county:*", 
-	regionin = "state:1,2", 
-	time = 2016)
+	regionin = "state:01,02", 
+	time = 2017)
 head(sahie_counties, n=12L)
 
 ## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
 sahie_years <- getCensus(name = "timeseries/healthins/sahie",
 	vars = c("NAME", "PCTUI_PT"), 
-	region = "state:1", 
-	time = "from 2006 to 2016")
+	region = "state:01", 
+	time = "from 2006 to 2017")
 head(sahie_years)
 
 ## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
+sahie_nonelderly <- getCensus(name = "timeseries/healthins/sahie",
+	vars = c("NAME", "PCTUI_PT", "IPR_DESC", "AGE_DESC", "RACECAT", "RACE_DESC"), 
+	region = "state:*", 
+	time = 2017,
+	IPRCAT = 5,
+	AGECAT = 1)
+head(sahie_nonelderly)
+
+## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
+sahie_nonelderly_annual <- getCensus(name = "timeseries/healthins/sahie",
+	vars = c("NAME", "PCTUI_PT", "PCTUI_MOE", "NUI_PT", "NUI_MOE", "IPRCAT", "IPR_DESC", "AGE_DESC", "RACECAT", "RACE_DESC"), 
+	region = "us:*", 
+	time = "from 2006 to 2017",
+	AGECAT = 1)
+head(sahie_nonelderly_annual)
+
+## ------------------------------------------------------------------------
+listCensusMetadata(name = "timeseries/idb/1year", 
+	type = "variables")
+
+## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
+pop_2050 <- getCensus(name = "timeseries/idb/1year",
+	vars = c("FIPS", "NAME", "AGE", "POP"),
+	time = 2050)
+head(pop_2050)
+
+## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
+pop_portugal <- getCensus(name = "timeseries/idb/1year",
+	vars = c("NAME", "POP"),
+	time = 2050,
+	FIPS = "PO",
+	AGE = "13:19")
+pop_portugal
+
+## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
+qwi <- getCensus(name = "timeseries/qwi/sa",
+								 region = "state:02",
+								 vars = c("Emp", "sex"),
+								 year = 2012,
+								 quarter = 1,
+								 agegrp = "A07",
+								 ownercode = "A05",
+								 firmsize = 1,
+								 seasonadj = "U",
+								 industry = 21)
+qwi
+
+## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
 acs_income <- getCensus(name = "acs/acs5",
-	vintage = 2016, 
+	vintage = 2017, 
 	vars = c("NAME", "B19013_001E", "B19013_001EA", "B19013_001M", "B19013_001MA"), 
 	region = "tract:*", 
 	regionin = "state:02")
 head(acs_income)
 
 ## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
+# See descriptions of the variables in group B19013
+group_B19013 <- listCensusMetadata(name = "acs/acs5",
+	vintage = 2017,
+	type = "variables",
+	group = "B19013")
+group_B19013
+
 acs_income_group <- getCensus(name = "acs/acs5", 
-	vintage = 2016, 
+	vintage = 2017, 
 	vars = c("NAME", "group(B19013)"), 
 	region = "tract:*", 
 	regionin = "state:02")
 head(acs_income_group)
 
 ## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
-acs_poverty_group <- getCensus(name = "acs/acs5",
-	vintage = 2016, 
-	vars = c("NAME", "group(B17020)"), 
-	region = "tract:*",
-	regionin = "state:02")
-# List column names
-colnames(acs_poverty_group)
+group_B17020 <- listCensusMetadata(name = "acs/acs5",
+	vintage = 2017,
+	type = "variables",
+	group = "B17020")
+head(group_B17020)
 
 ## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
 fips
@@ -99,14 +152,6 @@ data2010 <- getCensus(name = "dec/sf1",
 	vintage = 2010,
 	vars = "P001001", 
 	region = "block:*",
-	regionin = "state:36+county:027")
-head(data2010)
-
-## ---- purl = NOT_CRAN, eval = NOT_CRAN-----------------------------------
-data2000 <- getCensus(name = "sf1",
-	vintage = 2000,
-	vars = "P001001", 
-	region = "block:*",
 	regionin = "state:36+county:027+tract:010000")
-head(data2000)
+head(data2010)
 

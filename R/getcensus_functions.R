@@ -3,22 +3,26 @@
 #' @param apiurl, key, get, region, time
 #' @keywords internal
 #' @export
-getFunction <- function(apiurl, key, get, region, regionin, time, date, period, monthly, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic) {
+getFunction <- function(apiurl, key, get, region, regionin, time, date, period, monthly, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic, ...) {
 	# Return API's built in error message if invalid call
 	apiCheck <- function(req) {
 		if (req$status_code==400) {
 			error_message <- (gsub("<[^>]*>", "", httr::content(req, as="text")))
-			stop(paste("The Census Bureau returned the following error message:\n", error_message))
+			if (error_message == "error: missing 'for' argument") {
+				stop("This dataset requires you to specify a geography with the 'region' argument.")
+			}
+			stop(paste("The Census Bureau returned the following error message:\n", error_message,
+								 "\n Your API call was: ", print(req$url)))
 		}
 		# Some time series don't give error messages, just don't resolve (e.g. SAIPE)
 		if (req$status_code==204) stop("204, no content was returned.\nSee ?listCensusMetadata to learn more about valid API options.", call. = FALSE)
-		if (identical(httr::content(req, as = "text"), "")) stop("No output to parse", call. = FALSE)
+		if (identical(httr::content(req, as = "text"), "")) stop(paste("No output to parse. \n Your API call was: ", print(req$url)), call. = FALSE)
 	}
 
 	apiParse <- function (req) {
 		if (jsonlite::validate(httr::content(req, as="text"))[1] == FALSE) {
 			error_message <- (gsub("<[^>]*>", "", httr::content(req, as="text")))
-			stop(paste("The Census Bureau returned the following error message:\n", error_message))
+			stop(paste("The Census Bureau returned the following error message:\n", error_message, "\nYour api call was: ", req$url))
 		} else {
 			raw <- jsonlite::fromJSON(httr::content(req, as = "text"))
 		}
@@ -55,7 +59,7 @@ getFunction <- function(apiurl, key, get, region, regionin, time, date, period, 
 	}
 
 	# Assemble call
-	req <- httr::GET(apiurl, query = list(key = key, get = get, "for" = region, "in" = regionin, category_code = category_code, data_type_code = data_type_code, time = time, DATE = date, PERIOD = period, MONTHLY = monthly, NAICS=naics, PSCODE=pscode, NAICS2012 = naics2012, NAICS2007 = naics2007, NAICS2002 = naics2002, NAICS1997 = naics1997, SIC = sic))
+	req <- httr::GET(apiurl, query = list(key = key, get = get, "for" = region, "in" = regionin, category_code = category_code, data_type_code = data_type_code, time = time, DATE = date, PERIOD = period, MONTHLY = monthly, NAICS=naics, PSCODE=pscode, NAICS2012 = naics2012, NAICS2007 = naics2007, NAICS2002 = naics2002, NAICS1997 = naics1997, SIC = sic, ...))
 
 	# Check the API call for a valid response
 	apiCheck(req)
@@ -78,48 +82,76 @@ getFunction <- function(apiurl, key, get, region, regionin, time, date, period, 
 #' @param category_code,data_type_code Arguments used in Economic Indicators Time Series API
 #' @param naics,pscode Arguments used in Annual Survey of Manufactures API
 #' @param naics2012,naics2007,naics2002,naics1997,sic Arguments used in Economy Wide Key Statistics APIs and Business Patterns APIs
+#' @param ... Other valid parameters to pass to the Census API. Note: the APIs are case sensitive.
 #' @keywords api
 #' @export
 #' @examples
-#' \donttest{df <- getCensus(name = "acs/acs5", vintage = 2016,
-#' 	vars = c("B01001_001E", "NAME", "B01002_001E", "B19013_001E"),
-#' 	region = "tract:*", regionin = "state:06")
+#' \donttest{df <- getCensus(name = "acs/acs5", vintage = 2017,
+#' vars = c("B01001_001E", "NAME", "B01002_001E", "B19013_001E"),
+#' region = "tract:*", regionin = "state:06")
 #' head(df)
 #'
 #' # Use American Community Survey variable groups to get all data from a given table.
 #' # This returns estimates as well as margins of error and annotation flags.
-#' acs_group <- getCensus(name = "acs/acs5", vintage = 2016,
-#' 	vars = c("NAME", "group(B19013)"),
-#' 	region = "county:*")
-#' 	head(acs_group)
+#' acs_group <- getCensus(name = "acs/acs5",
+#' vintage = 2017,
+#' vars = c("NAME", "group(B19013)"),
+#' region = "county:*")
+#' head(acs_group)
 #'
-#' # Retreive block-level data within a specific state and county using a nested regionin argument
-#' data2010 <- getCensus(name = "dec/sf1", vintage = 2010,
-#'	vars = c("P001001", "H010001"),
-#'	region = "block:*", regionin = "state:36+county:027")
+#' # Retreive block-level data within a specific tract using a nested regionin argument
+#' data2010 <- getCensus(name = "dec/sf1",
+#' vintage = 2010,
+#' vars = c("NAME","P001001"),
+#' region = "block:*",
+#' regionin = "state:36+county:027+tract:010000")
 #' head(data2010)
 #'
 #' # Retreive block-level data for Decennial Census sf1, 2000
 #' # Note, for this dataset a tract needs to be specified to retrieve blocks
-#' data2000 <- getCensus(name = "sf1", vintage = 2000,
-#' 	vars = c("P001001", "P003001"),
-#'	region = "block:*", regionin = "state:36+county:27+tract:010000")
+#' data2000 <- getCensus(name = "sf1",
+#' vintage = 2000,
+#' vars = c("P001001", "P003001"),
+#' region = "block:*",
+#' regionin = "state:36+county:27+tract:010000")
 #' head(data2000)
 #'
-#' # Get time series data
+#' # Get poverty rates for children and all ages over time
 #' saipe <- getCensus(name = "timeseries/poverty/saipe",
-#' 	vars = c("NAME", "SAEPOVRT0_17_PT", "SAEPOVRTALL_PT"),
-#' 	region = "state:*", time = 2011)
+#' vars = c("NAME", "SAEPOVRT0_17_PT", "SAEPOVRTALL_PT"),
+#' region = "state:01",
+#' time = "from 2000 to 2017")
 #' head(saipe)
 #'
 #' # Get county business patterns data for a specific NAICS sector
 #'cbp_2016 <- getCensus(name = "cbp",
-#'  vintage = "2016",
-#'  vars = c("EMP", "ESTAB", "NAICS2012_TTL", "GEO_TTL"),
-#'  region = "state:*",
-#'  naics2012 = "23")
-#'  head(cbp_2016)}
-getCensus <- function(name, vintage=NULL, key=Sys.getenv("CENSUS_KEY"), vars, region, regionin=NULL, time=NULL, date=NULL, period=NULL, monthly=NULL, category_code=NULL, data_type_code=NULL, naics=NULL, pscode=NULL, naics2012=NULL, naics2007=NULL, naics2002=NULL, naics1997=NULL, sic=NULL) {
+#' vintage = "2016",
+#' vars = c("EMP", "ESTAB", "NAICS2012_TTL", "GEO_TTL"),
+#' region = "state:*",
+#' naics2012 = "23")
+#' head(cbp_2016)}
+getCensus <-
+	function(name,
+					 vintage = NULL,
+					 key = Sys.getenv("CENSUS_KEY"),
+					 vars,
+					 region = NULL,
+					 regionin = NULL,
+					 time = NULL,
+					 date = NULL,
+					 period = NULL,
+					 monthly = NULL,
+					 category_code = NULL,
+					 data_type_code = NULL,
+					 naics = NULL,
+					 pscode = NULL,
+					 naics2012 = NULL,
+					 naics2007 = NULL,
+					 naics2002 = NULL,
+					 naics1997 = NULL,
+					 sic = NULL,
+					 ...) {
+
 	constructURL <- function(name, vintage) {
 		if (is.null(vintage)) {
 			apiurl <- paste("https://api.census.gov/data", name, sep="/")
@@ -149,13 +181,13 @@ getCensus <- function(name, vintage=NULL, key=Sys.getenv("CENSUS_KEY"), vars, re
 		# Split vars into list
 		vars <- split(vars, ceiling(seq_along(vars)/50))
 		get <- lapply(vars, function(x) paste(x, sep='', collapse=","))
-		data <- lapply(get, function(x) getFunction(apiurl, key, x, region, regionin, time, date, period, monthly, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic))
+		data <- lapply(get, function(x) getFunction(apiurl, key, x, region, regionin, time, date, period, monthly, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic, ...))
 		colnames <- unlist(lapply(data, names))
 		data <- do.call(cbind,data)
 		names(data) <- colnames
 	} else {
 		get <- paste(vars, sep='', collapse=',')
-		data <- getFunction(apiurl, key, get, region, regionin, time, date, period, monthly, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic)
+		data <- getFunction(apiurl, key, get, region, regionin, time, date, period, monthly, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic, ...)
 	}
 	# If there are any duplicate columns (ie if you put a variable in vars twice) remove the duplicates
 	data <- data[, !duplicated(colnames(data))]
