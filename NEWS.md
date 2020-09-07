@@ -1,11 +1,24 @@
+# censusapi 0.7.0
+* Adds `show_call` option to `getCensus()`, which shows the underlying API call (otherwise only shown on errors) and link to package documentation when used.
+* Converts improperly formatted string "N/A" and "NULL" values from underlying Census data to true NA values.
+* Improves parsing of columns as numeric or character, specifically:
+  * Keeps 2017 NAICS variables as characters, instead of erroneously converting to numeric.
+  * Parses endpoint numeric variables with all-character variable names as numeric for several populat endpoints: SAHIE, SAIPE, ZBP, CBP, PEP and Decennial Response Rates.
+* Removes examples from deprecated 1990 and 2000 Decennial endpoints.
+
+# censusapi 0.6.1
+* Updates web link to FIPS codes reference after Census website reorganization.
+* Adds examples for Decennial Census response rates, updates several examples to retrieve newer data.
+* Removes example masterlist from package itself due to size, online only.
+
 # censusapi 0.6.0
-* Allows the use of miscellaneous paramaters in `getCensus(`. This allows users to specify any valid API argument name and pass it a value, giving full access to all of the underlying Census Bureau APIs.
+* Allows the use of miscellaneous paramaters in `getCensus()`. This allows users to specify any valid API argument name and pass it a value, giving full access to all of the underlying Census Bureau APIs.
 * Adds a `group` parameter in `listCensusMetadata()`. This allows users to get variable metadata for a specified variable group.
 * Improves internal logic in `listCensusMetadata()`.
 * Add documentation and examples using miscellaneous paramaters.
 * Returns underlying API call in error messages, particularly useful for users needing from the Census Bureau.
 * Specifies tract in block group example due to underlying API changes.
-* Adds [Contributor Code of Conduct](CODE_OF_CONDUCT.md).
+* Adds Contributor Code of Conduct.
 
 # censusapi 0.5.0
 * Makes `region` an optional argument in `getCensus`, rather than required.

@@ -4,12 +4,29 @@
 \alias{getCensus}
 \title{Retrieve Census data from a given API}
 \usage{
-getCensus(name, vintage = NULL, key = Sys.getenv("CENSUS_KEY"), vars,
-  region = NULL, regionin = NULL, time = NULL, date = NULL,
-  period = NULL, monthly = NULL, category_code = NULL,
-  data_type_code = NULL, naics = NULL, pscode = NULL,
-  naics2012 = NULL, naics2007 = NULL, naics2002 = NULL,
-  naics1997 = NULL, sic = NULL, ...)
+getCensus(
+  name,
+  vintage = NULL,
+  key = Sys.getenv("CENSUS_KEY"),
+  vars,
+  region = NULL,
+  regionin = NULL,
+  time = NULL,
+  date = NULL,
+  period = NULL,
+  monthly = NULL,
+  show_call = FALSE,
+  category_code = NULL,
+  data_type_code = NULL,
+  naics = NULL,
+  pscode = NULL,
+  naics2012 = NULL,
+  naics2007 = NULL,
+  naics2002 = NULL,
+  naics1997 = NULL,
+  sic = NULL,
+  ...
+)
 }
 \arguments{
 \item{name}{API name - e.g. acs5. See list at https://api.census.gov/data.html}
@@ -25,6 +42,8 @@ getCensus(name, vintage = NULL, key = Sys.getenv("CENSUS_KEY"), vars,
 \item{regionin}{Optional hierarchical geography to limit region}
 
 \item{time, date, period, monthly}{Optional arguments used for some time series APIs}
+
+\item{show_call}{List the underlying API call sent to the Census Bureau and other info}
 
 \item{category_code, data_type_code}{Arguments used in Economic Indicators Time Series API}
 
@@ -58,15 +77,6 @@ vars = c("NAME","P001001"),
 region = "block:*",
 regionin = "state:36+county:027+tract:010000")
 head(data2010)
-
-# Retreive block-level data for Decennial Census sf1, 2000
-# Note, for this dataset a tract needs to be specified to retrieve blocks
-data2000 <- getCensus(name = "sf1",
-vintage = 2000,
-vars = c("P001001", "P003001"),
-region = "block:*",
-regionin = "state:36+county:27+tract:010000")
-head(data2000)
 
 # Get poverty rates for children and all ages over time
 saipe <- getCensus(name = "timeseries/poverty/saipe",
