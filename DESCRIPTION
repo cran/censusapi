@@ -1,5 +1,5 @@
 Package: censusapi
-Version: 0.7.0
+Version: 0.7.1
 Title: Retrieve Data from the Census APIs
 Authors@R: person("Hannah", "Recht", email = "censusapi.rstats@gmail.com", role = c("aut", "cre"))
 Description: A wrapper for the U.S. Census Bureau APIs that returns data frames of 
@@ -17,8 +17,8 @@ Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
 Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2020-09-04 14:47:54 UTC; hrecht
+Packaged: 2020-10-14 13:20:10 UTC; hrecht
 Author: Hannah Recht [aut, cre]
 Maintainer: Hannah Recht <censusapi.rstats@gmail.com>
 Repository: CRAN
-Date/Publication: 2020-09-07 13:10:03 UTC
+Date/Publication: 2020-10-14 14:10:03 UTC
