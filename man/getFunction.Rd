@@ -12,10 +12,12 @@ getFunction(
   region,
   regionin,
   time,
+  year,
   date,
   period,
   monthly,
   show_call,
+  convert_variables,
   category_code,
   data_type_code,
   naics,
@@ -29,7 +31,7 @@ getFunction(
 )
 }
 \arguments{
-\item{apiurl, }{key, get, region, time}
+\item{apiurl, }{key, get, region, time, etc}
 }
 \description{
 Internal function: Get the API response, return a data frame

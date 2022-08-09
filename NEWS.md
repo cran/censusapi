@@ -1,3 +1,44 @@
+# censusapi 0.8.0 
+* `listCensusApis()` has new columns in the resulting data frame of available API endpoints: the API `contact` email address and `type`: either Aggregate, Timeseries, or Microdata.
+* `listCensusMetadata()` has new functionality to use `value` metadata. This is particularly useful for some of the economic datasets and the microdata APIs.
+	Use `type = "variables"` and `include_values = TRUE` to create a dictionary with all value labels for a given dataset.
+	To get value labels for a single variable in a given dataset, use `type = "values"` and `variable = "VARIABLE OF INTEREST"`. 
+
+	Note: This metadata, while incredibly useful, only exists for some datasets. For other datasets you'll still need to reference external files until the Census Bureau adds this functionality.
+	
+  For example, get the value labels for the `NAICS2017` in the County Business Patterns dataset:
+
+	```R 
+	cbp_naics_values <- listCensusMetadata(
+		name = "cbp",
+		vintage = 2020,
+		type = "values",
+		variable = "NAICS2017")
+	```
+	
+	Or make a full dictionary for the Current Population Survey Voting Patterns microdata API:
+	
+	```R 
+	cbp_dict <- listCensusMetadata(
+		name = "cbp",
+		vintage = 2020,
+		type = "variables",
+		include_values = TRUE)
+	```
+
+
+* `getCensus()` has a new option `convert_variables` re discussion in (#68) and (#80). The default is `TRUE` — as in previous versions, this converts columns of numbers to R's numeric data type. Setting `convert variables = FALSE` leaves all columns in the original character data type returned by the Census Bureau.
+* `getCensus()` has improved data binding for responses from requests where more than 50 variables are manually specified. Occasionally these large requests were not returned from the Census Bureau in the same order, leading to mismatched rows. This fixes (#82).
+* `listCensusMetadata()` now properly handles metadata attribute names in the new Microdata APIs that contain invalid JSON. This fixes (#84).
+* Documentation and examples are updated. There is a new vignette: [Accessing microdata.](https://www.hrecht.com/censusapi/articles/accessing-microdata.html)
+
+# censusapi 0.7.3
+* Properly types certain variables in international trade timeseries APIs.
+
+# censusapi 0.7.2
+* Adds named parameter for `YEAR` to `getCensus()` per changes to some timeseries endpoints that previously used `TIME` as a parameter.
+* Updates examples using SAHIE and SAIPE APIs per Census Bureau changes to these endpoints.
+
 # censusapi 0.7.1
 * Removes `listCensusMetadata()` and masterlist examples that used Business Dynamic Statistics endpoints, which were recently deprecated.
 
@@ -60,14 +101,10 @@
   * Note: this change has generally increased the run time for retrieving variable metadata with `listCensusMetadata`. For most APIs, this function will run in under one second. A lag may be noticeable for the American Community Survey APIs, which each have more than 40,000 variables. Improvements are planned in future releases.
 * `listCensusMetadata` allows full word or single letter argument in `type` parameter
 
-# censusapi 0.1.0.9001
+# censusapi 0.1.0
 * Scrapes http://api.census.gov/data.json rather than .html in `listCensusApis`, in starts of removing XML dependency. The .json data also includes several fields not present in the .html file, the most useful of which are added to the returned data frame.
 * Changes dataset used in `listCensusMetadata` examples, mainly for build/checks speed.
-
-# censusapi 0.1.0.9000
 * Set `getCensus(key)` argument's default value to be CENSUS_KEY in .Renviron. Explicitly encourages Census key to be added to .Renviron. (Users can always override this with any given input.)
 * Parses HTML response code. This is particularly important for the response that the Census APIs provided for invalid keys.
-
-# censusapi 0.1.0
 * Removes fips code 72 (Puerto Rico) from included fips dataset because Puerto Rico is not included in most Census API datasets.
 * Changes census key references in examples to Sys.getenv("CENSUS_KEY").

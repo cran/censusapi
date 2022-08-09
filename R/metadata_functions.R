@@ -1,60 +1,119 @@
-#' Get dataset metadata on all available APIs as a data frame
+#' Get useful dataset metadata on all available APIs as a data frame
 #'
 #' Scrapes {https://api.census.gov/data.json} and returns a dataframe
-#' that includes: title, name, vintage (where applicable), url, isTimeseries (binary),
-#' temporal (helpful for some time series), description, modified date
+#' that includes: title, description, name, vintage, url, dataset type, and other useful fields.
 #'
 #' @keywords metadata
 #' @export
 #' @examples
+#' \dontrun{
 #' apis <- listCensusApis()
 #' head(apis)
+#' }
 listCensusApis <- function() {
 	# Get data.json
 	u <- "https://api.census.gov/data.json"
 	raw <- jsonlite::fromJSON(u)
 	datasets <- jsonlite::flatten(raw$dataset)
 
-	# Format for user
+	# Format variable names and values
 	colnames(datasets) <- gsub("c_", "", colnames(datasets))
 	datasets$name <- apply(datasets, 1, function(x) paste(x$dataset, collapse = "/"))
 	datasets$url <- apply(datasets, 1, function(x) x$distribution$accessURL)
 
-	dt <- datasets[, c("title", "name", "vintage", "url", "isTimeseries", "temporal", "description", "modified")]
-	dt <- dt[order(dt$name, dt$vintage),]
+	names(datasets)[names(datasets) == "contactPoint.hasEmail"] <- "contact"
+
+	# Add a dataset type variable built from binary variables
+	datasets$type <- ifelse(datasets$isMicrodata %in% TRUE , "Microdata",
+													ifelse(datasets$isTimeseries %in% TRUE, "Timeseries",
+																 ifelse(datasets$isAggregate %in% TRUE, "Aggregate",
+																 			 NA)))
+
+	# Keep only valuable columns - many are not useful (empty or the same for all datasets)
+	dt <- datasets[, c("title", "name", "vintage", "type", "temporal", "url", "modified", "description", "contact")]
+	dt$contact <- gsub("mailto:", "", dt$contact)
+
+	# Give some logic to the row ordering
+	dt <- dt[order(-dt$vintage, dt$name),]
+	rownames(dt) <- NULL
 	return(dt)
 }
 
-#' Get variable or geography metadata for a given API as a data frame
+#' Get information about a specific API as a data frame
 #'
-#' @param name API name - e.g. acs5. See list at https://api.census.gov/data.html
-#' @param vintage Vintage of dataset, e.g. 2014 - not required for timeseries APIs
-#' @param type Type of metadata to return, either "variables", "geographies" or "geography", or
-#' "groups". Default is variables.
+#' @param name API programmatic name - e.g. acs/acs5. See list of names with listCensusApis().
+#' @param vintage Vintage (year) of dataset. Not required for timeseries APIs
+#' @param type Type of metadata to return. Options are:
+#'   * `variables` (default) - list of variable names and descriptions for the dataset.
+#'   * `geographies` - available geographies.
+#'   * `groups` - available variable groups. Not used for all datasets.
+#'   * `values` - encoded value labels for a given variable. Pair with
+#'      `variable_name`. Not used for all datasets.
 #' @param group An optional variable group code, used to return metadata for a specific group
-#' of variables only.
+#' of variables only. Variable groups are not used for all APIs.
+#' @param variable_name A name of a specific variable used to return value labels for that
+#' variable. Value labels are not published for all APIs.
+#' @param include_values Use with `type = "variables"`. Include value metadata
+#' for all variables in a dataset if value metadata exists. Default is "FALSE".
 #' @keywords metadata
-#' @export
 #' @examples
-#' \donttest{sahie_vars <- listCensusMetadata(name = "timeseries/healthins/sahie, type = "variables")
-#' head(sahie_vars)
+#' \dontrun{
 #'
-#' acs_geos <- listCensusMetadata(name = "acs/acs5", vintage = 2017, type = "geographies")
-#' head(acs_geos)
+#' # List the variables available in the Small Area Health Insurance Estimates.
+#' sahie_variables <- listCensusMetadata(
+#'   name = "timeseries/healthins/sahie",
+#'   type = "variables")
+#'  head(sahie_variables)
 #'
-#' acs_groups <- listCensusMetadata(name = "acs/acs5", vintage = 2017, type = "groups")
-#' head(acs_groups)
+#' # List the geographies available in the 5-year 2020 American Community Survey.
+#' acs_geographies <- listCensusMetadata(
+#'   name = "acs/acs5",
+#'   vintage = 2020,
+#'   type = "geographies")
+#'  head(acs_geographies)
 #'
-#' group_B17020 <- listCensusMetadata(name = "acs/acs5",
-#' vintage = 2017,
-#' type = "variables",
-#' group = "B17020")
-#' head(group_B17020)}
+#' # List the variable groups available in the 5-year 2020 American Community Survey.
+#' acs_groups <- listCensusMetadata(
+#'   name = "acs/acs5",
+#'   vintage = 2020,
+#'   type = "groups")
+#'  head(acs_groups)
+
+#' # Create a data dictionary with all variable names and encoded values for
+#' # a microdata API.
+#' cbp_dict <- listCensusMetadata(
+#'   name = "cbp",
+#'   vintage = 2020,
+#'   type = "variables",
+#'   include_values = TRUE)
+#'  head(cbp_dict)
+#'
+#' # List the value labels of the NAICS2017 variable in the 2020 County
+#' # Business Patterns dataset.
+#' cbp_naics_values <- listCensusMetadata(
+#'   name = "cbp",
+#'   vintage = 2020,
+#'   type = "values",
+#'   variable = "NAICS2017")
+#'  head(cbp_naics_values)
+#'
+#' # List of variables that are included in the B17020 group in the
+#' # 5-year American Community Survey.
+#' group_B17020 <- listCensusMetadata(
+#'   name = "acs/acs5",
+#'   vintage = 2017,
+#'   type = "variables",
+#'   group = "B17020")
+#'  head(group_B17020)
+#' }
+#' @export
 listCensusMetadata <-
 	function(name,
 					 vintage = NULL,
 					 type = "variables",
-					 group = NULL) {
+					 group = NULL,
+					 variable_name = NULL,
+					 include_values = FALSE) {
 
 		constructURL <- function(name, vintage) {
 			if (is.null(vintage)) {
@@ -76,7 +135,7 @@ listCensusMetadata <-
 			if (!(req$status_code %in% c(200, 201, 202))) {
 				if (req$status_code == 404) {
 					stop(paste("Invalid metadata request, (404) not found.",
-							 "\n Your API call was: ", print(req$url)), call. = FALSE)
+										 "\n Your API call was: ", print(req$url)), call. = FALSE)
 				} else if (req$status_code==400) {
 					stop(paste("The Census Bureau returned the following error message:\n", req$error_message,
 										 "\n Your API call was: ", print(req$url)))
@@ -99,7 +158,7 @@ listCensusMetadata <-
 
 		apiurl <- constructURL(name, vintage)
 
-		if (type %in% c("variables", "v")) {
+		if (type %in% c("variables")) {
 			# Too nested and irregular for automatic conversion
 
 			if (!is.null(group)) {
@@ -133,31 +192,100 @@ listCensusMetadata <-
 				# Generally, predicateOnly = parameter, exclude predicateOnly (parameters)
 
 				# Manual fill with NAs as needed to avoid adding a dplyr::bind_rows or similar dependency
+
+				# Get the list of possible column names
 				cols <- unique(unlist(lapply(raw$variables, names)))
-				cols <- cols[!(cols %in% c("predicateOnly", "datetime", "validValues", "values"))]
-				makeDf <- function(d) {
-					if("validValues" %in% names(d)) {
-						d$validValues <- NULL
+
+				# Remove invalid dashes in variable names - problem present in Microdata APIs
+				cols <- gsub("-", "_", cols)
+
+				if (include_values == FALSE | !("values" %in% cols)) {
+
+					# Warn the user if they've asked for value labels but none are present
+					if (include_values == TRUE & !("values" %in% cols)) {
+						warning("You've set `include_values` to TRUE but this dataset does not contain variable values. Variable values will not be returned")
 					}
-					if("values" %in% names(d)) {
-						d$values <- NULL
+					cols <- cols[!(cols %in% c("validValues", "values", "datetime"))]
+
+					# Remove attributes that have nested lists
+					makeDf <- function(d) {
+						names(d) <- gsub("-", "_", names(d))
+						if ("validValues" %in% names(d)) {
+							d$validValues <- NULL
+						}
+						if ("values" %in% names(d)) {
+							d$values <- NULL
+						}
+						if ("datetime" %in% names(d)) {
+							d$datetime <- NULL
+						}
+						df <- data.frame(d)
+
+						df[, setdiff(cols, names(df))] <- NA
+						return(df)
 					}
-					df <- data.frame(d)
-					df[, setdiff(cols, names(df))] <- NA
-					return(df)
+
+					dts <- lapply(raw$variables, makeDf)
+
+				} else if (include_values == TRUE) {
+
+			  	# Prepare for value code and label if the value metadata is present
+					if ("values" %in% cols) {
+						# print("VALUES ARE PRESENT")
+						cols <- c(cols, "values_code", "values_label")
+						cols <- cols[cols != "values"]
+					}
+
+					makeDf <- function(d) {
+						names(d) <- gsub("-", "_", names(d))
+
+						# As of right now, not using the "range" metadata in some of the microdata,
+						# only item labels
+						if ("values" %in% names(d) & "item" %in% names(d$values)) {
+							# print(("YES VALUES META")
+							# Make data frame of value labels
+							temp_vals <- utils::stack(d$values$item)
+
+							# Column cleaning
+							colnames(temp_vals) <- c("label", "code")
+							temp_vals <- temp_vals[, c("code", "label")]
+							# Use character, not factor
+							temp_vals$code <- as.character(temp_vals$code)
+
+							# Assign back to parent
+							d$values <- temp_vals
+
+							df <- as.data.frame(d)
+							names(df) <- gsub("\\.", "_", names(df))
+
+						} else {
+							# print("NO VALUES META")
+							# Set values to null in case it exists but without `item` labels
+							d$values <- NULL
+
+							df <- as.data.frame(d)
+						}
+
+						df[, setdiff(cols, names(df))] <- NA
+						return(df)
+					}
+
+					dts <- lapply(raw$variables, makeDf)
 				}
-				dts <- lapply(raw$variables, function(x) if(!("predicateOnly" %in% names(x))) {makeDf(x)} else {x <- NULL})
 			}
+
 			temp <- Filter(is.data.frame, dts)
 			dt <- do.call(rbind, temp)
 
-			# Clean up
+			# Clean up row names aka variable names
 			dt <- cbind(name = row.names(dt), dt)
 			row.names(dt) <- NULL
+			# If there are periods in the name field from concatenated numbers, remove
+			dt$name <- gsub("\\..*", "", dt$name)
 			dt[] <- lapply(dt, as.character)
 
 
-		} else if (type %in% c("geography", "geographies", "g")) {
+		} else if (type %in% c("geographies", "geography")) {
 			u <- paste(apiurl, "geography.json", sep="/")
 			req <- httr::GET(u)
 			# Check the API call for a valid response
@@ -166,7 +294,7 @@ listCensusMetadata <-
 			# If check didn't fail, parse the content
 			raw <- apiParse(req)
 			dt <- raw$fips
-		} else if (type %in% c("groups", "group")) {
+		} else if (type %in% c("groups")) {
 			u <- paste(apiurl, "groups.json", sep="/")
 			req <- httr::GET(u)
 			# Check the API call for a valid response
@@ -178,8 +306,24 @@ listCensusMetadata <-
 			if (is.null(dim(dt))) {
 				stop("Groups are not available for the selected API endpoint.")
 			}
+		} else if (type == "values") {
+			u <- paste0(apiurl, "/variables/", variable_name, ".json")
+			req <- httr::GET(u)
+			# Check the API call for a valid response
+			apiCheck(req)
+
+			# If check didn't fail, parse the content
+			raw <- apiParse(req)
+			if (length(raw$values) == 0 | !("item" %in% names(raw$values))) {
+				stop(paste("Value labels are not available for the selected variable:", variable_name))
+			}
+			dt <- utils::stack(raw$values$item)
+			colnames(dt) <- c("label", "code")
+			dt <- dt[, c("code", "label")]
+
 		}	else {
-			stop(paste('For "type", you entered: "', type, '". Did you mean "variables" or "geography" or "groups"?', sep = ""))
+			stop(paste('For "type", you entered: "', type, '". Did you mean "variables", "geographies", "groups", or "values"?', sep = ""))
 		}
 		return(dt)
 	}
+

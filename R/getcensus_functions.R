@@ -1,9 +1,9 @@
 #' Internal function: Get the API response, return a data frame
 #'
-#' @param apiurl, key, get, region, time
+#' @param apiurl, key, get, region, time, etc
 #' @keywords internal
 #' @export
-getFunction <- function(apiurl, name, key, get, region, regionin, time, date, period, monthly, show_call, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic, ...) {
+getFunction <- function(apiurl, name, key, get, region, regionin, time, year, date, period, monthly, show_call, convert_variables, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic, ...) {
 
 	# Return API's built in error message if invalid call
 	apiCheck <- function(req) {
@@ -28,7 +28,7 @@ getFunction <- function(apiurl, name, key, get, region, regionin, time, date, pe
 			# Show call if option is true
 			if (show_call == TRUE) {
 				print(paste("Your successful api call was: ", req$url))
-				print("For more information, visit the documentation at https://hrecht.github.io/censusapi/index.html")
+				print("For more information, visit the documentation at https://www.hrecht.com/censusapi/")
 			}
 			raw <- jsonlite::fromJSON(httr::content(req, as = "text"))
 		}
@@ -55,59 +55,72 @@ getFunction <- function(apiurl, name, key, get, region, regionin, time, date, pe
 		df[] <- lapply(df, as.character)
 
 		# Make columns numeric based on column names - unfortunately best strategy without additional API calls given structure of data across endpoints
-		string_col_parts <- "_TTL|_NAME|NAICS2012|NAICS2017|NAICS2012_TTL|NAICS2017_TTL|fage4|FAGE4|LABEL|_DESC|CAT"
+		if (convert_variables == TRUE) {
+			string_col_parts <- "_TTL|_NAME|NAICS2012|NAICS2017|NAICS2012_TTL|NAICS2017_TTL|fage4|FAGE4|LABEL|_DESC|CAT"
 
-		# For ACS data, do not make columns numeric if they are ACS annotation variables - ending in MA or EA or SS
-		if (grepl("acs/acs", name, ignore.case = T)) {
-			# Do not make known string/label variables numeric
-			numeric_cols <- grep("[0-9]", names(df), value=TRUE)
-			string_cols <- grep(paste0("MA|EA|SS|", string_col_parts), numeric_cols, value = TRUE, ignore.case = T)
+			# For ACS data, do not make columns numeric if they are ACS annotation variables - ending in MA or EA or SS
+			if (grepl("acs/acs", name, ignore.case = T)) {
+				# Do not make known string/label variables numeric
+				numeric_cols <- grep("[0-9]", names(df), value=TRUE)
+				string_cols <- grep(paste0("MA|EA|SS|", string_col_parts), numeric_cols, value = TRUE, ignore.case = T)
 
-			# Small Area Health Insurance Estimates
-		} else if (grepl("healthins/sahie", name, ignore.case = T)) {
-			numeric_cols <- grep("[0-9]|_PT|NIPR|PCTIC|PCTUI|NIC|NUI", names(df), value=TRUE, ignore.case = T)
-			string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
+				# Small Area Health Insurance Estimates
+			} else if (grepl("healthins/sahie", name, ignore.case = T)) {
+				numeric_cols <- grep("[0-9]|_PT|NIPR|PCTIC|PCTUI|NIC|NUI", names(df), value=TRUE, ignore.case = T)
+				string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
 
-			# Small Area Income and Poverty Estimates
-		} else if (grepl("poverty/saipe", name, ignore.case = T)) {
-			numeric_cols <- grep("[0-9]|SAEMHI|SAEPOV", names(df), value=TRUE, ignore.case = T)
-			string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
+				# Small Area Income and Poverty Estimates
+			} else if (grepl("poverty/saipe", name, ignore.case = T)) {
+				numeric_cols <- grep("[0-9]|SAEMHI|SAEPOV", names(df), value=TRUE, ignore.case = T)
+				string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
 
-			# Population and Housing Estimates
-		} else if (grepl("pep/", name, ignore.case = T)) {
-			numeric_cols <- grep("[0-9]|POP|DENSITY|HUEST", names(df), value=TRUE, ignore.case = T)
-			string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
+				# Population and Housing Estimates
+			} else if (grepl("pep/", name, ignore.case = T)) {
+				numeric_cols <- grep("[0-9]|POP|DENSITY|HUEST", names(df), value=TRUE, ignore.case = T)
+				string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
 
-			# County Business Patterns
-		} else if (name == "cbp" | name == "zbp") {
-			# Exact matches for CBP variables
-			numeric_cols <- grep("[0-9]|\\<EMP\\>|\\<ESTAB\\>|PAYANN", names(df), value=TRUE, ignore.case = T)
-			string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
+				# County Business Patterns
+			} else if (name == "cbp" | name == "zbp") {
+				# Exact matches for CBP variables
+				numeric_cols <- grep("[0-9]|\\<EMP\\>|\\<ESTAB\\>|PAYANN", names(df), value=TRUE, ignore.case = T)
+				string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
 
-			# Decennial Response Rates
-		} else if (name == "dec/responserate") {
-			numeric_cols <- grep("[0-9]|CINT|MIN|MED|AVG|MAX|DRR|CRR", names(df), value=TRUE, ignore.case = T)
-			string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
+				# Decennial Response Rates
+			} else if (name == "dec/responserate") {
+				numeric_cols <- grep("[0-9]|CINT|MIN|MED|AVG|MAX|DRR|CRR", names(df), value=TRUE, ignore.case = T)
+				string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
 
+				# International trade
+			} else if (grepl("timeseries/intltrade/", name, ignore.case = T)) {
+				numeric_cols <- grep("[0-9]", names(df), value=TRUE, ignore.case = T)
+				string_col_parts <- paste0(string_col_parts, "|UNIT_QY|_FLAG")
+				string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
 
-		} else {
-			# Do not make known string/label variables numeric
-			numeric_cols <- grep("[0-9]", names(df), value=TRUE)
-			string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
+				# Microdata weighting variables
+			} else if (grepl("cps/", name, ignore.case = T) |
+								 name %in% c("acs/acs5/pums", "acs/acs5/pumspr", "acs/acs1/pums", "acs/acs1/pumspr")) {
+				numeric_cols <- grep("[0-9]|PWSSWGT|HWHHWGT|PWFMWGT|PWLGWGT|PWCMPWGT
+|PWORWGT|PWVETWGT|WGTP|PWGTP", names(df), value=TRUE, ignore.case = T)
+				string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
+
+			} else {
+				# Do not make known string/label variables numeric
+				numeric_cols <- grep("[0-9]", names(df), value=TRUE)
+				string_cols <- grep(string_col_parts, numeric_cols, value = TRUE, ignore.case = T)
+			}
+
+			# Convert string "NULL" or "N/A" values to true NA
+			df[(df == "NULL" | df == "N/A" | df == "NA")] <- NA
+
+			for(col in setdiff(numeric_cols, string_cols)) df[,col] <- as.numeric(df[,col])
 		}
-
-		# Convert string "NULL" or "N/A" values to true NA
-		df[(df == "NULL" | df == "N/A" | df == "NA")] <- NA
-
-		for(col in setdiff(numeric_cols, string_cols)) df[,col] <- as.numeric(df[,col])
-
 		row.names(df) <- NULL
 
 		return(df)
 	}
 
 	# Assemble call
-	req <- httr::GET(apiurl, query = list(key = key, get = get, "for" = region, "in" = regionin, category_code = category_code, data_type_code = data_type_code, time = time, DATE = date, PERIOD = period, MONTHLY = monthly, NAICS=naics, PSCODE=pscode, NAICS2012 = naics2012, NAICS2007 = naics2007, NAICS2002 = naics2002, NAICS1997 = naics1997, SIC = sic, ...))
+	req <- httr::GET(apiurl, query = list(key = key, get = get, "for" = region, "in" = regionin, category_code = category_code, data_type_code = data_type_code, time = time, YEAR = year, DATE = date, PERIOD = period, MONTHLY = monthly, NAICS=naics, PSCODE=pscode, NAICS2012 = naics2012, NAICS2007 = naics2007, NAICS2002 = naics2002, NAICS1997 = naics1997, SIC = sic, ...))
 
 	# Check the API call for a valid response
 	apiCheck(req)
@@ -118,58 +131,79 @@ getFunction <- function(apiurl, name, key, get, region, regionin, time, date, pe
 	# Format the response into a nice data frame
 	df <- responseFormat(raw)
 }
+
 #' Retrieve Census data from a given API
 #'
-#' @param name API name - e.g. acs5. See list at https://api.census.gov/data.html
-#' @param vintage Year of dataset, e.g. 2014 - not required for timeseries APIs
-#' @param key Your Census API key, gotten from https://api.census.gov/data/key_signup.html
-#' @param vars List of variables to get
-#' @param region Geography to get
-#' @param regionin Optional hierarchical geography to limit region
-#' @param time,date,period,monthly Optional arguments used for some time series APIs
-#' @param show_call List the underlying API call sent to the Census Bureau and other info
-#' @param category_code,data_type_code Arguments used in Economic Indicators Time Series API
-#' @param naics,pscode Arguments used in Annual Survey of Manufactures API
-#' @param naics2012,naics2007,naics2002,naics1997,sic Arguments used in Economy Wide Key Statistics APIs and Business Patterns APIs
-#' @param ... Other valid parameters to pass to the Census API. Note: the APIs are case sensitive.
+#' @param name The programmatic name of your dataset, e.g. `timeseries/poverty/saipe`
+#' or `acs/acs5`. See `listCensusApis()` for options.
+#' @param vintage Vintage (year) of dataset, e.g. 2014. Not required for timeseries APIs.
+#' @param vars List of variables to get. Required.
+#' @param region Geography to get.
+#' @param regionin Optional hierarchical geography to limit region.
+#' @param time,year,date,period,monthly Optional arguments used for some time series APIs.
+#' @param category_code,data_type_code,naics,pscode,naics2012,naics2007,naics2002,naics1997,sic
+#' Optional arguments used in economic data APIs.
+#' @param show_call List the underlying API call that was sent to the Census Bureau.
+#' @param convert_variables Convert likely numeric variables into numeric data.
+#' Default is true. If false, results will be characters, which is the type returned by
+#' the Census Bureau.
+#' @param key Your Census API key, obtained at https://api.census.gov/data/key_signup.html.
+#' This function will default to a `CENSUS_KEY` stored in your .Renviron if available.
+#' @param ... Other valid arguments to pass to the Census API. Note: the APIs are case sensitive.
 #' @keywords api
-#' @export
 #' @examples
-#' \donttest{df <- getCensus(name = "acs/acs5", vintage = 2017,
-#' vars = c("B01001_001E", "NAME", "B01002_001E", "B19013_001E"),
-#' region = "tract:*", regionin = "state:06")
-#' head(df)
+#' \dontrun{
+#' # Get total population and median household income for places (cities, towns, villages)
+#' # in one state from the 5-year ACS.
+#' acs_simple <- getCensus(
+#'   name = "acs/acs5",
+#'   vintage = 2020,
+#'   vars = c("NAME", "B01001_001E", "B19013_001E"),
+#'   region = "place:*",
+#'   regionin = "state:01")
+#' head(acs_simple)
 #'
-#' # Use American Community Survey variable groups to get all data from a given table.
+#' # Get all data from the B19013 variable group.
 #' # This returns estimates as well as margins of error and annotation flags.
-#' acs_group <- getCensus(name = "acs/acs5",
-#' vintage = 2017,
-#' vars = c("NAME", "group(B19013)"),
-#' region = "county:*")
+#' acs_group <- getCensus(
+#'   name = "acs/acs5",
+#'   vintage = 2020,
+#'   vars = c("B01001_001E", "group(B19013)"),
+#'   region = "place:*",
+#'   regionin = "state:01")
 #' head(acs_group)
 #'
-#' # Retreive block-level data within a specific tract using a nested regionin argument
-#' data2010 <- getCensus(name = "dec/sf1",
-#' vintage = 2010,
-#' vars = c("NAME","P001001"),
-#' region = "block:*",
-#' regionin = "state:36+county:027+tract:010000")
-#' head(data2010)
+#' # Retreive 2010 Decennial Census block-level data within a specific tract,
+#' # using the regionin argument to precisely specify the Census tract.
+#' decennial_2010 <- getCensus(
+#'   name = "dec/sf1",
+#'   vintage = 2010,
+#'   vars = c("NAME","P001001"),
+#'   region = "block:*",
+#'   regionin = "state:36+county:027+tract:010000")
+#' head(decennial_2010)
 #'
-#' # Get poverty rates for children and all ages over time
-#' saipe <- getCensus(name = "timeseries/poverty/saipe",
-#' vars = c("NAME", "SAEPOVRT0_17_PT", "SAEPOVRTALL_PT"),
-#' region = "state:01",
-#' time = "from 2000 to 2017")
+#' # Get poverty rates for children and for people of all ages over time using the
+#' # Small Area Income and Poverty Estimates API
+#' saipe <- getCensus(
+#'   name = "timeseries/poverty/saipe",
+#'   vars = c("NAME", "SAEPOVRT0_17_PT", "SAEPOVRTALL_PT"),
+#'   region = "state:01",
+#'   year = "2000:2019")
 #' head(saipe)
 #'
-#' # Get county business patterns data for a specific NAICS sector
-#'cbp_2016 <- getCensus(name = "cbp",
-#' vintage = "2016",
-#' vars = c("EMP", "ESTAB", "NAICS2012_TTL", "GEO_TTL"),
-#' region = "state:*",
-#' naics2012 = "23")
-#' head(cbp_2016)}
+#' # Get County Business Patterns data for a specific NAICS sector.
+#' cbp_2016 <- getCensus(
+#'  name = "cbp",
+#'   vintage = "2016",
+#'   vars = c("EMP", "ESTAB", "NAICS2012_TTL", "GEO_TTL"),
+#'   region = "state:*",
+#'   naics2012 = "23")
+#' head(cbp_2016)
+#' }
+#'
+#' @export
+
 getCensus <-
 	function(name,
 					 vintage = NULL,
@@ -178,10 +212,12 @@ getCensus <-
 					 region = NULL,
 					 regionin = NULL,
 					 time = NULL,
+					 year = NULL,
 					 date = NULL,
 					 period = NULL,
 					 monthly = NULL,
 					 show_call = FALSE,
+					 convert_variables = TRUE,
 					 category_code = NULL,
 					 data_type_code = NULL,
 					 naics = NULL,
@@ -222,18 +258,18 @@ getCensus <-
 		# Split vars into list
 		vars <- split(vars, ceiling(seq_along(vars)/50))
 		get <- lapply(vars, function(x) paste(x, sep='', collapse=","))
-		data <- lapply(get, function(x) getFunction(apiurl, name, key, x, region, regionin, time, date, period, monthly, show_call, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic, ...))
-		colnames <- unlist(lapply(data, names))
-		data <- do.call(cbind,data)
-		names(data) <- colnames
+		data <- lapply(get, function(x) getFunction(apiurl, name, key, x, region, regionin, time, year, date, period, monthly, show_call, convert_variables, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic, ...))
+
+		data <- Reduce(function(x, y) merge(x, y, all = TRUE, sort = FALSE), data)
+
 	} else {
 		get <- paste(vars, sep='', collapse=',')
-		data <- getFunction(apiurl, name, key, get, region, regionin, time, date, period, monthly, show_call, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic, ...)
+		data <- getFunction(apiurl, name, key, get, region, regionin, time, year, date, period, monthly, show_call, convert_variables, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic, ...)
 	}
+
 	# If there are any duplicate columns (ie if you put a variable in vars twice) remove the duplicates
 	data <- data[, !duplicated(colnames(data))]
-	# Reorder columns so that numeric fields follow non-numeric fields
-	# data <- data[,c(which(sapply(data, class)!='numeric'), which(sapply(data, class)=='numeric'))]
+
 	# Reorder columns so that lowercase column names (geographies) are first
 	data <- data[,c(which(grepl("[a-z]", colnames(data))), which(!grepl("[a-z]", colnames(data))))]
 	return(data)

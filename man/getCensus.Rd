@@ -12,10 +12,12 @@ getCensus(
   region = NULL,
   regionin = NULL,
   time = NULL,
+  year = NULL,
   date = NULL,
   period = NULL,
   monthly = NULL,
   show_call = FALSE,
+  convert_variables = TRUE,
   category_code = NULL,
   data_type_code = NULL,
   naics = NULL,
@@ -29,68 +31,85 @@ getCensus(
 )
 }
 \arguments{
-\item{name}{API name - e.g. acs5. See list at https://api.census.gov/data.html}
+\item{name}{The programmatic name of your dataset, e.g. `timeseries/poverty/saipe`
+or `acs/acs5`. See `listCensusApis()` for options.}
 
-\item{vintage}{Year of dataset, e.g. 2014 - not required for timeseries APIs}
+\item{vintage}{Vintage (year) of dataset, e.g. 2014. Not required for timeseries APIs.}
 
-\item{key}{Your Census API key, gotten from https://api.census.gov/data/key_signup.html}
+\item{key}{Your Census API key, obtained at https://api.census.gov/data/key_signup.html.
+This function will default to a `CENSUS_KEY` stored in your .Renviron if available.}
 
-\item{vars}{List of variables to get}
+\item{vars}{List of variables to get. Required.}
 
-\item{region}{Geography to get}
+\item{region}{Geography to get.}
 
-\item{regionin}{Optional hierarchical geography to limit region}
+\item{regionin}{Optional hierarchical geography to limit region.}
 
-\item{time, date, period, monthly}{Optional arguments used for some time series APIs}
+\item{time, year, date, period, monthly}{Optional arguments used for some time series APIs.}
 
-\item{show_call}{List the underlying API call sent to the Census Bureau and other info}
+\item{show_call}{List the underlying API call that was sent to the Census Bureau.}
 
-\item{category_code, data_type_code}{Arguments used in Economic Indicators Time Series API}
+\item{convert_variables}{Convert likely numeric variables into numeric data.
+Default is true. If false, results will be characters, which is the type returned by
+the Census Bureau.}
 
-\item{naics, pscode}{Arguments used in Annual Survey of Manufactures API}
+\item{category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic}{Optional arguments used in economic data APIs.}
 
-\item{naics2012, naics2007, naics2002, naics1997, sic}{Arguments used in Economy Wide Key Statistics APIs and Business Patterns APIs}
-
-\item{...}{Other valid parameters to pass to the Census API. Note: the APIs are case sensitive.}
+\item{...}{Other valid arguments to pass to the Census API. Note: the APIs are case sensitive.}
 }
 \description{
 Retrieve Census data from a given API
 }
 \examples{
-\donttest{df <- getCensus(name = "acs/acs5", vintage = 2017,
-vars = c("B01001_001E", "NAME", "B01002_001E", "B19013_001E"),
-region = "tract:*", regionin = "state:06")
-head(df)
+\dontrun{
+# Get total population and median household income for places (cities, towns, villages)
+# in one state from the 5-year ACS.
+acs_simple <- getCensus(
+  name = "acs/acs5",
+  vintage = 2020,
+  vars = c("NAME", "B01001_001E", "B19013_001E"),
+  region = "place:*",
+  regionin = "state:01")
+head(acs_simple)
 
-# Use American Community Survey variable groups to get all data from a given table.
+# Get all data from the B19013 variable group.
 # This returns estimates as well as margins of error and annotation flags.
-acs_group <- getCensus(name = "acs/acs5",
-vintage = 2017,
-vars = c("NAME", "group(B19013)"),
-region = "county:*")
+acs_group <- getCensus(
+  name = "acs/acs5",
+  vintage = 2020,
+  vars = c("B01001_001E", "group(B19013)"),
+  region = "place:*",
+  regionin = "state:01")
 head(acs_group)
 
-# Retreive block-level data within a specific tract using a nested regionin argument
-data2010 <- getCensus(name = "dec/sf1",
-vintage = 2010,
-vars = c("NAME","P001001"),
-region = "block:*",
-regionin = "state:36+county:027+tract:010000")
-head(data2010)
+# Retreive 2010 Decennial Census block-level data within a specific tract,
+# using the regionin argument to precisely specify the Census tract.
+decennial_2010 <- getCensus(
+  name = "dec/sf1",
+  vintage = 2010,
+  vars = c("NAME","P001001"),
+  region = "block:*",
+  regionin = "state:36+county:027+tract:010000")
+head(decennial_2010)
 
-# Get poverty rates for children and all ages over time
-saipe <- getCensus(name = "timeseries/poverty/saipe",
-vars = c("NAME", "SAEPOVRT0_17_PT", "SAEPOVRTALL_PT"),
-region = "state:01",
-time = "from 2000 to 2017")
+# Get poverty rates for children and for people of all ages over time using the
+# Small Area Income and Poverty Estimates API
+saipe <- getCensus(
+  name = "timeseries/poverty/saipe",
+  vars = c("NAME", "SAEPOVRT0_17_PT", "SAEPOVRTALL_PT"),
+  region = "state:01",
+  year = "2000:2019")
 head(saipe)
 
-# Get county business patterns data for a specific NAICS sector
-cbp_2016 <- getCensus(name = "cbp",
-vintage = "2016",
-vars = c("EMP", "ESTAB", "NAICS2012_TTL", "GEO_TTL"),
-region = "state:*",
-naics2012 = "23")
-head(cbp_2016)}
+# Get County Business Patterns data for a specific NAICS sector.
+cbp_2016 <- getCensus(
+ name = "cbp",
+  vintage = "2016",
+  vars = c("EMP", "ESTAB", "NAICS2012_TTL", "GEO_TTL"),
+  region = "state:*",
+  naics2012 = "23")
+head(cbp_2016)
+}
+
 }
 \keyword{api}
