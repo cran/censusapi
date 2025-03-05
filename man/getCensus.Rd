@@ -7,17 +7,17 @@
 getCensus(
   name,
   vintage = NULL,
-  key = Sys.getenv("CENSUS_KEY"),
+  key = NULL,
   vars,
   region = NULL,
   regionin = NULL,
   time = NULL,
+  show_call = FALSE,
+  convert_variables = TRUE,
   year = NULL,
   date = NULL,
   period = NULL,
   monthly = NULL,
-  show_call = FALSE,
-  convert_variables = TRUE,
   category_code = NULL,
   data_type_code = NULL,
   naics = NULL,
@@ -31,13 +31,17 @@ getCensus(
 )
 }
 \arguments{
-\item{name}{The programmatic name of your dataset, e.g. `timeseries/poverty/saipe`
-or `acs/acs5`. See `listCensusApis()` for options.}
+\item{name}{The programmatic name of your dataset, e.g.
+"timeseries/poverty/saipe" or "acs/acs5". Use listCensusApis() to see valid
+dataset names. Required.}
 
-\item{vintage}{Vintage (year) of dataset, e.g. 2014. Not required for timeseries APIs.}
+\item{vintage}{Vintage (year) of dataset, e.g. 2014. Not required for
+timeseries APIs.}
 
-\item{key}{Your Census API key, obtained at https://api.census.gov/data/key_signup.html.
-This function will default to a `CENSUS_KEY` stored in your .Renviron if available.}
+\item{key}{A Census API key, obtained at
+\url{https://api.census.gov/data/key_signup.html}. If you have a \code{CENSUS_KEY} or
+\code{CENSUS_API_KEY} stored in your .Renviron file, getCensus() will
+automatically use that key. Using a key is recommended but not required.}
 
 \item{vars}{List of variables to get. Required.}
 
@@ -45,71 +49,75 @@ This function will default to a `CENSUS_KEY` stored in your .Renviron if availab
 
 \item{regionin}{Optional hierarchical geography to limit region.}
 
-\item{time, year, date, period, monthly}{Optional arguments used for some time series APIs.}
+\item{time}{Time period of data to get. Required for most timeseries APIs.}
 
-\item{show_call}{List the underlying API call that was sent to the Census Bureau.}
+\item{show_call}{Display the underlying API call that was sent to the Census
+Bureau. Default is FALSE.}
 
-\item{convert_variables}{Convert likely numeric variables into numeric data.
-Default is true. If false, results will be characters, which is the type returned by
-the Census Bureau.}
+\item{convert_variables}{Convert columns that are likely numbers into numeric
+data. Default is TRUE. If false, all columns will be characters, which is
+the type returned by the Census Bureau.}
 
-\item{category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic}{Optional arguments used in economic data APIs.}
+\item{year, date, period, monthly, category_code, data_type_code, naics, pscode, naics2012, naics2007, naics2002, naics1997, sic}{Optional arguments used in some timeseries data APIs.}
 
-\item{...}{Other valid arguments to pass to the Census API. Note: the APIs are case sensitive.}
+\item{...}{Other valid arguments to pass to the Census API. Note: the APIs
+are case sensitive.}
+}
+\value{
+A data frame with results from the specified U.S. Census Bureau dataset.
 }
 \description{
 Retrieve Census data from a given API
 }
 \examples{
-\dontrun{
-# Get total population and median household income for places (cities, towns, villages)
-# in one state from the 5-year ACS.
+\dontshow{if (has_api_key()) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+# Get total population and median household income for Census places
+# (cities, towns, villages) in a single state from the 5-year American Community Survey.
 acs_simple <- getCensus(
   name = "acs/acs5",
-  vintage = 2020,
+  vintage = 2022,
   vars = c("NAME", "B01001_001E", "B19013_001E"),
   region = "place:*",
   regionin = "state:01")
 head(acs_simple)
 
-# Get all data from the B19013 variable group.
+# Get all data from the B08301 variable group, "Means of Transportation to Work."
 # This returns estimates as well as margins of error and annotation flags.
 acs_group <- getCensus(
   name = "acs/acs5",
-  vintage = 2020,
-  vars = c("B01001_001E", "group(B19013)"),
-  region = "place:*",
-  regionin = "state:01")
+  vintage = 2022,
+  vars = "group(B08301)",
+  region = "state:*")
 head(acs_group)
 
-# Retreive 2010 Decennial Census block-level data within a specific tract,
-# using the regionin argument to precisely specify the Census tract.
-decennial_2010 <- getCensus(
-  name = "dec/sf1",
-  vintage = 2010,
-  vars = c("NAME","P001001"),
-  region = "block:*",
-  regionin = "state:36+county:027+tract:010000")
-head(decennial_2010)
+# Retreive 2020 Decennial Census block group data within a specific Census tract,
+# using the regionin argument to precisely specify the Census tract, county,
+# and state.
+decennial_block_group <- getCensus(
+	name = "dec/dhc",
+	vintage = 2020,
+	vars = c("NAME", "P1_001N"),
+	region = "block group:*",
+	regionin = "state:36+county:027+tract:220300")
+head(decennial_block_group)
 
-# Get poverty rates for children and for people of all ages over time using the
+# Get poverty rates for children and for people of all ages beginning in 2000 using the
 # Small Area Income and Poverty Estimates API
 saipe <- getCensus(
   name = "timeseries/poverty/saipe",
   vars = c("NAME", "SAEPOVRT0_17_PT", "SAEPOVRTALL_PT"),
   region = "state:01",
-  year = "2000:2019")
+  time = "from 2000")
 head(saipe)
 
-# Get County Business Patterns data for a specific NAICS sector.
-cbp_2016 <- getCensus(
- name = "cbp",
-  vintage = "2016",
-  vars = c("EMP", "ESTAB", "NAICS2012_TTL", "GEO_TTL"),
-  region = "state:*",
-  naics2012 = "23")
-head(cbp_2016)
+# Get the number of employees and number of establishments in the construction sector,
+# NAICS2017 code 23, using the County Business Patterns API
+cbp <- getCensus(
+	name = "cbp",
+	vintage = 2021,
+	vars = c("EMP", "ESTAB", "NAICS2017_LABEL"),
+	region = "county:*",
+	NAICS2017 = 23)
+head(cbp)
+\dontshow{\}) # examplesIf}
 }
-
-}
-\keyword{api}

@@ -1,3 +1,33 @@
+# censusapi 0.9.0
+## Breaking changes
+* Increases required version of R from >=3.0 to >=3.5 (released in 2018) based on httr dependency.
+
+## New features
+### API keys
+* `getCensus()` no longer requires `key`, the use of a Census Bureau API key. Users are still encouraged to register for and use an API key because the Census Bureau may rate limit IP addresses, but it is not required. (#87)
+* New `get_api_key()` helper function retrieves the value of a user's stored Census Bureau API key from a saved environment variable or provides a warning message if none is found.
+* New `has_api_key()` helper function detects if there is a stored Census Bureau API key in the Renviron, intended mainly for internal use.
+
+### Variable typing
+* `getCensus()` uses improved logic to automatically convert columns that contain all numbers to numeric, unless the column name is in a specific list of geography names or other string type columns. Use `convert_variables = FALSE` to leave all columns as characters.
+
+### Metadata
+* `listCensusApis()` now has optional `name` and `vintage` parameters to get metadata for a subset of datasets or a single dataset. (#103)
+
+```R
+# Get metadata for all 2020 Decennial Census datasets
+apis_decennial_2020 <- listCensusApis(name = "dec", vintage = 2020)
+
+# Get metadata for all timeseries datasets
+apis_timeseries <- listCensusApis(name = "timeseries")
+```
+
+## Documentation
+* Function documentation is improved and better formatted.
+* Examples are updated to use newly released datasets.
+* A new online [frequently asked questions article](https://www.hrecht.com/censusapi/articles/frequently-asked-questions.html) improves documentation.
+* A new vignette included in the package build directs users to the website to read web-only articles.
+
 # censusapi 0.8.0 
 * `listCensusApis()` has new columns in the resulting data frame of available API endpoints: the API `contact` email address and `type`: either Aggregate, Timeseries, or Microdata.
 * `listCensusMetadata()` has new functionality to use `value` metadata. This is particularly useful for some of the economic datasets and the microdata APIs.
@@ -77,7 +107,7 @@
 * Updates 2010 Decennial Census examples to use new 2010 `dec/sf1` endpoint, which will replace 2010 `sf1` endpoint on August 30, 2018.
 
 # censusapi 0.4.0
-* Adds support for NAICS code arguments used in [Business Patterns](https://www.census.gov/data/developers/data-sets/cbp-nonemp-zbp.html) APIs, [Economic Census](https://www.census.gov/data/developers/data-sets/economic-census.html) APIs, and [Annual Survey of Manufactures](https://www.census.gov/data/developers/data-sets/Annual-Survey-of-Manufactures.html) APIs.
+* Adds support for NAICS code arguments used in Business Patterns APIs, Economic Census APIs, and Annual Survey of Manufactures APIs.
 
 # censusapi 0.3.0
 * Does not convert ACS annotation flag variables into numeric columns.
@@ -96,7 +126,7 @@
 * Fixes bug that caused single-row responses to throw an error
 
 # censusapi 0.1.1
-* Uses https rather than http for requests. The Census Bureau [announced](https://content.govdelivery.com/attachments/USCENSUS/2017/05/31/file_attachments/824523/HttpsChangeDocument.pdf) that their APIs will be https-only beginning on August 28, 2017.
+* Uses https rather than http for requests. The Census Bureau announced that their APIs will be https-only beginning on August 28, 2017.
 * Removes XML dependency by parsing .json instead of .html metadata.
   * Note: this change has generally increased the run time for retrieving variable metadata with `listCensusMetadata`. For most APIs, this function will run in under one second. A lag may be noticeable for the American Community Survey APIs, which each have more than 40,000 variables. Improvements are planned in future releases.
 * `listCensusMetadata` allows full word or single letter argument in `type` parameter
